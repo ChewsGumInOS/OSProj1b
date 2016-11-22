@@ -8,13 +8,14 @@ public class Dispatcher {
 
 
     public static synchronized void dispatch(CPU cpu) {
-
+/*
         PCB currJob = Queues.readyQueue.getFirst();
 
         System.arraycopy(currJob.registers, 0, cpu.reg, 0, currJob.registers.length);
 
         cpu.jobId = currJob.jobId;
         cpu.pc = currJob.pc;
+
         cpu.base_reg = currJob.memories.base_register;
         cpu.codeSize = currJob.codeSize;
         cpu.inputBufferSize = currJob.inputBufferSize;
@@ -38,6 +39,7 @@ public class Dispatcher {
             System.err.println(ie.toString());
         }
 
+*/
     }
 
     //save PCB info from CPU back into PCB

@@ -1,88 +1,63 @@
 //Long-Term Scheduler.
 
-//Quick and Dirty algorithm: load 15 jobs at at time into Memory, and load their PCB's onto the ReadyQueue.
-//After each Load, the LongScheduler also checks the percentage of RAM space used, and sets maxMemUsed.
+//Loads first 4 frames from all 30 jobs into memory.
 
+import java.util.Arrays;
 
 public class LongScheduler {
+
 
     final static int FIFO = 1;
     final static int PRIORITY = 2;
     final static int SJF = 3;
-    final static int NUM_JOBS_TO_LOAD = 15;     //in class, suggested loading 15 at a time.
 
-    int algorithm = FIFO;                       //current scheduling algorithm.
-
-    static int maxMemUsed;
+    int algorithm = FIFO;                       //current scheduling algorithm; FIFO is default.
 
     public LongScheduler (int policy) {
         this.algorithm = policy;
     }
 
-
     //load processes into memory from disk.
-    //these processes are "Ready" to run.
+    //these processes are "Ready" to be run.
     public void schedule () {
-        if (Queues.readyQueue.size() == 0) {
-
-            //algorithms:
-            //FIFO - in order listed in diskQueue.
-            //PRIORITY - in order of Priority (16 = highest priority, 0 = lowest?)
-            //SJF - shortest job first.
-            if (algorithm == PRIORITY) {
-                Queues.diskQueue.sort((PCB o1, PCB o2) -> o2.priority - o1.priority);
-            } else if (algorithm == SJF) {
-                Queues.diskQueue.sort((PCB o1, PCB o2) -> o1.getJobSizeInMemory() - o2.getJobSizeInMemory());
-                //diskQueue.sort((PCB o1, PCB o2) -> o1.getCodeSize() - o2.getCodeSize());
-                /*
-                for (PCB thisPCB : Queues.diskQueue) {
-                    System.out.print(thisPCB.jobId + "\t");
-                    System.out.print(thisPCB.getJobSizeInMemory() + "\t");
-                    System.out.print(thisPCB.codeSize + "\t");
-                    System.out.println();
-                }*/
-            }
-
-            int jobCounter = 0;  //track number of jobs loaded
-            int memCounter = 0;  //current mem location being written to
-            int diskCounter = 0; //current disk location being read
-
-            int jobSize = 0;
-            boolean outOfRoom = false;
-            PCB currPCB;
-
-            //keep reading in jobs until A) 15 jobs read in, B) memory limit reached, or C )no more jobs to load.
-            while ((jobCounter < NUM_JOBS_TO_LOAD) && (!outOfRoom) && (!Queues.diskQueue.isEmpty())) {
-
-                currPCB = Queues.diskQueue.get(0);  //read the top-most job on the disk table.
-                diskCounter = currPCB.memories.base_register;
-                jobSize = currPCB.getJobSizeInMemory();
-
-                //check: do we have enough memory to store this job?
-                if (MemorySystem.memory.checkAddressInBounds(memCounter + jobSize)) {
-
-                    currPCB.memories.base_register = memCounter;
-                    //currPCB.status = PCB.state.READY;
-                    Queues.readyQueue.add(currPCB);
-                    Queues.diskQueue.pop();
-                    currPCB.trackingInfo.waitStartTime = System.nanoTime();
-                    System.arraycopy(MemorySystem.disk.diskArray, diskCounter, MemorySystem.memory.memArray, memCounter, jobSize);
-
-                    memCounter += jobSize;
-                    jobCounter++;
-                } else {
-                    outOfRoom = true;
-                }
-
-            }
-
-            int currMemUsage = calcMemUsage();
-            if (currMemUsage > maxMemUsed) {
-                maxMemUsed = currMemUsage;
-            }
+        //FIFO      - readyQueue is first-in, first-out.
+        //PRIORITY  - readyQueue sorted by priority (16 = highest priority, 0 = lowest)
+        //SJF       - readyQueue sorted by jobSize: shortest job first.
+        if (algorithm == PRIORITY) {
+            Queues.diskQueue.sort((PCB o1, PCB o2) -> o2.priority - o1.priority);
+        } else if (algorithm == SJF) {
+            Queues.diskQueue.sort((PCB o1, PCB o2) -> o1.getJobSizeInMemory() - o2.getJobSizeInMemory());
         }
 
+        int memCounter = 0;  //current mem location being written to
+        int diskCounter; //current disk location being read
+
+        PCB currPCB;
+
+        //keep reading jobs into memory until no more jobs to load.
+        while (!Queues.diskQueue.isEmpty()) {
+
+            currPCB = Queues.diskQueue.pop();  //read the top-most job on the disk table.
+            Queues.readyQueue.add(currPCB);
+
+            diskCounter = currPCB.memories.disk_base_register;
+
+            for (int i = 0; i < 4; i++) {  //copy first 4 frames of job into memory, from disk.
+                System.arraycopy(MemorySystem.disk.diskArray[diskCounter], 0, MemorySystem.memory.memArray[memCounter], 0, 4);
+                currPCB.memories.pageTable[i][0] = memCounter;      //update page table
+                currPCB.memories.pageTable[i][1] = 1;               //set to valid.
+                diskCounter++;
+                memCounter++;
+            }
+            //currPCB.status = PCB.state.READY;
+            currPCB.trackingInfo.waitStartTime = System.nanoTime();
+        }
+
+        //for (PCB thisPCB : Queues.readyQueue) {
+        //    System.out.println(Arrays.deepToString(thisPCB.memories.pageTable));
+        //}
     }
+
 
     //sum up memory usage of all the jobs currently in memory (readyQueue and waitingQueue).
     public int calcMemUsage () {
@@ -95,5 +70,4 @@ public class LongScheduler {
         }
         return counter;
     }
-
 }

@@ -15,19 +15,19 @@ public class Driver {
     public static boolean logging;       //set to true if we want to output the results(buffers) to a file.
 
     static ExecutorService executor;
-    static CPU [] cpu;
+    static CPU[] cpu;
     static SyncObject syncObject;
 
 
     public static void main(String[] args) throws FileNotFoundException {
 
-        Scanner userInput = new Scanner (System.in);
+        Scanner userInput = new Scanner(System.in);
         int iterations;
 
         ArrayList<MemoryClass> coreDumpArray;
         int numTimingFields = 5;    //4 columns: jobId, cpuId, Waiting Time, Completion Time, Execution Time.
-        long [][][] timingArray = null;
-        long [][] avgTimingArray;   //just Waiting Time(avg) and Completion Time(avg)
+        long[][][] timingArray = null;
+        long[][] avgTimingArray;   //just Waiting Time(avg) and Completion Time(avg)
         int numJobs = 0;
 
 
@@ -35,18 +35,17 @@ public class Driver {
         //                  Get User Input
         /////////////////////////////////////////////////////////////////////////////////
 
-        System.out.println ("Welcome to the SimpleOS Simulator.\t");
-        System.out.print ("Enter Scheduling Policy (1 for FIFO, 2 for Priority, 3 for SJF:\t");
+        System.out.println("Welcome to the SimpleOS Simulator.\t");
+        System.out.print("Enter Scheduling Policy (1 for FIFO, 2 for Priority, 3 for SJF:\t");
         int policy = userInput.nextInt();
 
-        System.out.print ("Log output for 1 iteration?(y/n)\t");
+        System.out.print("Log output for 1 iteration?(y/n)\t");
         String logChoice = userInput.next();
 
         if (logChoice.equals("y") || logChoice.equals("Y")) {
             logging = true;
             iterations = 1;
-        }
-        else {
+        } else {
             logging = false;
             System.out.print("Enter Number of iterations:\t");
             iterations = userInput.nextInt();
@@ -62,7 +61,7 @@ public class Driver {
             java.io.File file = new java.io.File("Program-File.txt");
 
             try ( //try with resources (auto-closes Scanner)
-                Scanner input = new Scanner(file);
+                  Scanner input = new Scanner(file);
             ) {
                 Queues.initQueues();
                 MemorySystem.initMemSystem();
@@ -70,6 +69,7 @@ public class Driver {
                 LongScheduler longScheduler = new LongScheduler(policy);
                 syncObject = new SyncObject();
 
+                /*
                 cpu = new CPU[CPU.CPU_COUNT];
                 executor = Executors.newFixedThreadPool(CPU.CPU_COUNT);
 
@@ -79,15 +79,80 @@ public class Driver {
                 }
 
                 coreDumpArray = new ArrayList();
+                */
+
 
                 loader.load(input);
+                outputDiskToFile();  //debugging method to check if the Loader loaded the disk properly.
+
                 numJobs = Queues.diskQueue.size();
+
+                longScheduler.schedule();       //load processes into memory from disk.
+                outputMemToFile();  //debugging method to check if the LTS loaded the disk properly.
+
+            } //added
+        }//added
+    }//added
+
+    //outputDiskToFile: debugging method to check if Loader loaded disk properly.
+    //Outputs Disk to File, to check if Disk wrote properly.
+    public static void outputDiskToFile() {
+        try {
+            java.io.File diskDumpFile = new java.io.File("diskDump.txt");
+            java.io.PrintWriter diskDump = new java.io.PrintWriter(diskDumpFile);
+
+            String padding = "00000000";
+
+            for (int i = 0; i < MemorySystem.disk.DISK_SIZE; i++) {
+                for (int j = 0; j < 4; j++) {
+                    String unpaddedHex = Integer.toHexString(MemorySystem.disk.diskArray[i][j]).toUpperCase();
+                    String paddedHex = padding.substring(unpaddedHex.length()) + unpaddedHex;
+                    paddedHex = "0x" + paddedHex;
+                    diskDump.println(paddedHex);
+                }
+            }
+            diskDump.close();
+        }
+        catch (FileNotFoundException ex){
+            ex.printStackTrace();
+        }
+    }
+
+
+    //outputMemToFile: debugging method to check if LTS loaded memory properly.
+    //Outputs Memory to File.
+    public static void outputMemToFile() {
+        try {
+            java.io.File memDumpFile = new java.io.File("memDump.txt");
+            java.io.PrintWriter memDump = new java.io.PrintWriter(memDumpFile);
+
+            String padding = "00000000";
+
+            for (int i = 0; i < MemorySystem.memory.MEM_SIZE; i++) {
+                for (int j = 0; j < 4; j++) {
+                    String unpaddedHex = Integer.toHexString(MemorySystem.memory.memArray[i][j]).toUpperCase();
+                    String paddedHex = padding.substring(unpaddedHex.length()) + unpaddedHex;
+                    paddedHex = "0x" + paddedHex;
+                    memDump.println(paddedHex);
+                }
+            }
+            memDump.close();
+        }
+        catch (FileNotFoundException ex){
+            ex.printStackTrace();
+        }
+    }
+
+
+}//added
+
+                /*
 
                 /////////////////////////////////////////////////////////////////////////////////
                 //                        Begin Main Driver Loop
                 /////////////////////////////////////////////////////////////////////////////////
                 do {
-                    longScheduler.schedule();       //load processes into memory from disk.
+
                     ShortScheduler.schedule();      //pick one job from the ready Queue to run on a CPU
 
                     if (Queues.readyQueue.size() == 0) {
@@ -334,5 +399,5 @@ public class Driver {
         }
     }
 
-
 }
+*/

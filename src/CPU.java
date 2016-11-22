@@ -501,6 +501,9 @@ public class CPU implements Runnable {
         public DMA() {}
 
         public void handleDMA() {
+
+            /*
+
             try {
                 for (int i = 0; i < jobSize; i++) {
                     if (cache.modified[i]) {
@@ -512,6 +515,7 @@ public class CPU implements Runnable {
             catch (InterruptedException ie) {
                 System.err.println("Invalid DMA handler interruption: " + ie.toString());
             }
+*/
 
         }
     }

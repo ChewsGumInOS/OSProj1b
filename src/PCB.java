@@ -1,22 +1,6 @@
 //Process Control Block
 public class PCB {
 
-    /* fields not implemented yet, from project specification
-    cpuid:              // information the assigned CPU (for multiprocessor system)
-
-    struct state:       // record of environment that is saved on interrupt
-                        // including the pc, registers, permissions, buffers, caches, active
-                        // pages/blocks
-    struct registers:   // accumulators, index, general
-    struct sched:       // burst-time, priority, queue-type, time-slice, remain-time
-    struct accounts:    // cpu-time, time-limit, time-delays, start/end times, io-times
-    struct progeny:     // child-procid, child-code-pointers
-    parent: ptr;        // pointer to parent (if this process is spawned, else ‘null’)
-    struct resources:   // file-pointers, io-devices – unitclass, unit#, open-file-tables
-    status_info:        // pointer to ‘ready-list of active processes’ or
-                        // ‘resource-list on blocked processes’
-    */
-
     //job card info
     int jobId;
     int codeSize;
@@ -38,8 +22,7 @@ public class PCB {
     //public enum state {NEW, READY, RUNNING, BLOCKED, COMPLETE};
     //state status;  //{new, ready, running, blocked}
 
-    Memories memories;  // page-table-base, pages, page-size (not yet implemented)
-                        // base-registers – logical/physical map, limit-reg (not yet implemented)
+    Memories memories;
 
     TrackingInfo trackingInfo;
 
@@ -70,13 +53,17 @@ public class PCB {
 
 class Memories {
 
-    int base_register;  //start address of the code in memory/disk
+    public static final int TABLE_SIZE = 20;
 
-    //int disk_start_reg;     //start address of job in disk.
-    //int limit_register; //length of job
-    //int end_register;   //end address of the code in memory
-    //int input_buffer_loc;  //start address of input buffer
-    //int output_buffer_loc; //start address of output buffer;
+    int disk_base_register;  //starting page of the job's code on disk
+    int disk_data_base_reg;  //starting page of the job's data on disk.
+
+    int[][] pageTable;      //pageTable column 0: pageNumber.  column 1: valid (1) or invalid (0).
+
+    public Memories() {
+        pageTable = new int[TABLE_SIZE][2];
+    }
+
 }
 
 class TrackingInfo {

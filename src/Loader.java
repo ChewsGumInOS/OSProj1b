@@ -2,7 +2,7 @@ import java.util.Scanner;
 import static java.lang.Integer.parseInt;
 
 
-//note: currently the Loader assumes that there is enough disk space to load all the jobs.
+//note: the Loader assumes that there is enough disk space to load all the jobs.
 //      it does NOT check that there is enough space before loading each job.
 
 
@@ -19,6 +19,7 @@ public class Loader {
         while (input.hasNext()) {
 
             PCB currJob = new PCB();    //temp variable; stores info about current job being read
+            Queues.diskQueue.add(currJob);
 
             //1. read job card info into PCB.
             //2. read program file into disk.
@@ -42,17 +43,14 @@ public class Loader {
 
                     String jobIdHex = input.next();
                     int jobId = Integer.parseInt(jobIdHex, 16);
-                    //System.out.println("jobid " + jobId);
                     currJob.jobId = jobId;
 
                     String codeSizeHex = input.next();
                     int codeSize = parseInt(codeSizeHex, 16);
-                    //System.out.println("codeSize " + codeSize);
                     currJob.codeSize = codeSize;
 
                     String priorityHex = input.next();
                     int priority = Integer.parseInt(priorityHex, 16);
-                    //System.out.println("priority " + priorityHex);
                     currJob.priority = priority;
 
                     /////////////////////////////////////////////////////////////////////////////////
@@ -60,9 +58,9 @@ public class Loader {
                     /////////////////////////////////////////////////////////////////////////////////
 
 
-                    //make a note of where the job starts on the disk.
-                    currJob.memories.base_register = diskCounter;
-                    currJob.pc = 0;               //set program counter to 0.
+                    //make a note of where the job starts on the disk - the first frame.
+                    currJob.memories.disk_base_register = diskCounter/4;
+                    currJob.pc = 0;
                     currJob.goodFinish = false;
                     //currJob.status = PCB.state.NEW;
 
@@ -78,11 +76,13 @@ public class Loader {
                             System.err.println("Error: 0x expected.  Instead found: " + instruction);
                             System.exit(0);
                         } else {
-                            //System.out.println(instruction);
-                            MemorySystem.disk.writeDisk(instruction, diskCounter);
+                            MemorySystem.disk.writeDisk(instruction, diskCounter/4, diskCounter%4);
                             diskCounter++;
                         }
                     }
+                    //move to a fresh frame; update diskCounter.
+                    if (diskCounter%4 != 0)
+                        diskCounter += 4 - diskCounter%4;
 
                     /////////////////////////////////////////////////////////////////////////////////
                     //                           END READING INSTRUCTIONS
@@ -107,22 +107,22 @@ public class Loader {
 
                             String inputBufferSizeHex = input.next();
                             int inputBufferSize = Integer.parseInt(inputBufferSizeHex, 16);
-                            //System.out.println(inputBufferSize);
                             currJob.inputBufferSize = inputBufferSize;
 
                             String outputBufferSizeHex = input.next();
                             int outputBufferSize = Integer.parseInt(outputBufferSizeHex, 16);
-                            //System.out.println(outputBufferSize);
                             currJob.outputBufferSize = outputBufferSize;
 
                             String tempBufferSizeHex = input.next();
                             int tempBufferSize = Integer.parseInt(tempBufferSizeHex, 16);
-                            //System.out.println(tempBufferSize);
                             currJob.tempBufferSize = tempBufferSize;
 
                             /////////////////////////////////////////////////////////////////////////////////
                             //                           END READING DATA CARD
                             /////////////////////////////////////////////////////////////////////////////////
+
+                            //make a note of where the job data starts on the disk.
+                            currJob.memories.disk_data_base_reg = diskCounter/4;
 
                             /////////////////////////////////////////////////////////////////////////////////
                             //                           BEGIN READING DATA SECTION
@@ -135,15 +135,17 @@ public class Loader {
                                     System.exit(0);
                                 } else {
                                     //System.out.println(data);
-                                    MemorySystem.disk.writeDisk(data, diskCounter);
+                                    MemorySystem.disk.writeDisk(data, diskCounter/4, diskCounter%4);
                                     diskCounter++;
                                 }
                             }
+                            //move to a fresh frame; update diskCounter.
+                            if (diskCounter%4 != 0)
+                                diskCounter += 4 - diskCounter%4;
 
                             /////////////////////////////////////////////////////////////////////////////////
                             //                           END READING DATA SECTION
                             /////////////////////////////////////////////////////////////////////////////////
-
 
 
                             //check for // END or //END or //end - all are acceptable.
@@ -160,30 +162,13 @@ public class Loader {
                             if (!controlCard.equalsIgnoreCase("END")) {
                                 System.err.println("Error: END expected.  Instead found: " + controlCard);
                                 System.exit(0);
-                            } else {
-                                //finished reading a job
-                                //endOfJob = true;
-                                Queues.diskQueue.add(currJob);
-                                //System.out.println(currJob);
                             }
-
                         }
                     }
                 }
             }
-
-            //currJob.trackingInfo.waitStartTime = System.currentTimeMillis();
         }
 
-        //System.out.println (diskCounter);  //2027 lines.
-        //for (PCB currPCB: diskQueue) {
-        //    System.out.println(currPCB);
-        //}
-
-        /////////////////////////////////////////////////////////////////////////////////
-        //                              END LOADER
-        /////////////////////////////////////////////////////////////////////////////////
-
-
+        //System.out.println(diskCounter); //2040.
     }
 }
