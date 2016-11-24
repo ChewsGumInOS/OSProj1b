@@ -1,3 +1,5 @@
+import java.util.LinkedList;
+
 public class MemorySystem {
 
     //public final int FRAME_SIZE = 4;
@@ -23,60 +25,58 @@ class DiskClass {
         diskArray = new int[DISK_SIZE][4];
     }
 
-    public void writeDisk(String line, int frameNumber, int offset) {
-        //int hexLong = Long.decode(line).intValue();
-
+    public void writeDisk(int diskCounter, String line) {
         int hexInt = Long.decode(line).intValue();
-        diskArray[frameNumber][offset] = hexInt;
-
-        //System.out.println (hexInt);
-        //line = line.substring(2);
-        //System.out.println (line.substring(2,3));
-        //System.out.println (line.substring(3,4));
-        //diskArray[diskCounter].word[0] = line.substring(2,3);
-
+        diskArray[diskCounter/4][diskCounter%4] = hexInt;
     }
 
     //returns a line of code from the disk (as an int)
-    public int readDisk(int frameNumber, int offset) {
-          return diskArray[frameNumber][offset];
+    public int readDisk(int address) {
+        int frameNumber = address/4;
+        int offset = address%4;
+        return diskArray[frameNumber][offset];
     }
-
 
 }
 
 //memory: 1024 words.  1 word = 4 bytes (or 8 hex characters).
 class MemoryClass {
-    public final int MEM_SIZE = 256;
+    public static final int MEM_SIZE = 256;
 
     int[][] memArray;
 
+    LinkedList<Integer> freeFramesList;
+
     public MemoryClass() {
         memArray = new int [MEM_SIZE][4];
+
+        freeFramesList = new LinkedList();
+        for (int i = 0; i < MEM_SIZE; i++) {
+            freeFramesList.add(i);
+        }
     }
 
-    /*
-    public void writeMemoryAddress(int ramAddress, int data) {
-        if ((ramAddress < 0) || (ramAddress > MEM_SIZE - 1))
-            System.out.println ("Error, attempting to write to invalid memory address: " + ramAddress);
+
+    public void writeMemoryAddress(int frame, int offset, int data) {
+        if ((frame < 0) || (frame > MEM_SIZE - 1))
+            System.out.println ("Error, attempting to write to invalid memory frame: " + frame);
         else
-            memArray[ramAddress] = data;
+            memArray[frame][offset] = data;
     }
 
-    public int readMemoryAddress(int ramAddress) {
-        if ((ramAddress < 0) || (ramAddress > MEM_SIZE - 1)) {
-            System.out.println("Error, attempting to write to invalid memory address: " + ramAddress);
+    public int readMemoryAddress(int frame, int offset, int data) {
+        if ((frame < 0) || (frame > MEM_SIZE - 1)) {
+            System.out.println("Error, attempting to write to invalid memory frame: " + frame);
             return -1;
         }
         else
-            return (memArray[ramAddress]);
+            return (memArray[frame][offset]);
     }
 
 
-    public boolean checkAddressInBounds(int memLoc) {
-        return !((memLoc < 0 ) || (memLoc > MEM_SIZE - 1));
-    }
+    //public boolean checkAddressInBounds(int memLoc) {
+    //    return !((memLoc < 0 ) || (memLoc > MEM_SIZE - 1));
+    //}
 
-    */
 }
 

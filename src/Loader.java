@@ -62,7 +62,6 @@ public class Loader {
                     currJob.memories.disk_base_register = diskCounter/4;
                     currJob.pc = 0;
                     currJob.goodFinish = false;
-                    //currJob.status = PCB.state.NEW;
 
                     /////////////////////////////////////////////////////////////////////////////////
                     //                           BEGIN READING INSTRUCTIONS
@@ -76,7 +75,7 @@ public class Loader {
                             System.err.println("Error: 0x expected.  Instead found: " + instruction);
                             System.exit(0);
                         } else {
-                            MemorySystem.disk.writeDisk(instruction, diskCounter/4, diskCounter%4);
+                            MemorySystem.disk.writeDisk(diskCounter, instruction);
                             diskCounter++;
                         }
                     }
@@ -135,7 +134,7 @@ public class Loader {
                                     System.exit(0);
                                 } else {
                                     //System.out.println(data);
-                                    MemorySystem.disk.writeDisk(data, diskCounter/4, diskCounter%4);
+                                    MemorySystem.disk.writeDisk(diskCounter, data);
                                     diskCounter++;
                                 }
                             }

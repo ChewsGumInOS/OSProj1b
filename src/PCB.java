@@ -1,6 +1,8 @@
 //Process Control Block
 public class PCB {
 
+    public static final int TABLE_SIZE = 20;
+
     //job card info
     int jobId;
     int codeSize;
@@ -12,18 +14,13 @@ public class PCB {
     int tempBufferSize;
 
     int pc;     // the job’s pc holds the address of the instruction to fetch
-
     int [] registers;
 
     boolean goodFinish;
 
     int cpuId;
 
-    //public enum state {NEW, READY, RUNNING, BLOCKED, COMPLETE};
-    //state status;  //{new, ready, running, blocked}
-
     Memories memories;
-
     TrackingInfo trackingInfo;
 
 
@@ -53,17 +50,14 @@ public class PCB {
 
 class Memories {
 
-    public static final int TABLE_SIZE = 20;
-
     int disk_base_register;  //starting page of the job's code on disk
     int disk_data_base_reg;  //starting page of the job's data on disk.
 
     int[][] pageTable;      //pageTable column 0: pageNumber.  column 1: valid (1) or invalid (0).
 
     public Memories() {
-        pageTable = new int[TABLE_SIZE][2];
+        pageTable = new int[PCB.TABLE_SIZE][2];
     }
-
 }
 
 class TrackingInfo {

@@ -44,12 +44,12 @@ public class LongScheduler {
 
             for (int i = 0; i < 4; i++) {  //copy first 4 frames of job into memory, from disk.
                 System.arraycopy(MemorySystem.disk.diskArray[diskCounter], 0, MemorySystem.memory.memArray[memCounter], 0, 4);
+                MemorySystem.memory.freeFramesList.pop();           //update freeFramesList (frame of memory has been filled)
                 currPCB.memories.pageTable[i][0] = memCounter;      //update page table
                 currPCB.memories.pageTable[i][1] = 1;               //set to valid.
                 diskCounter++;
                 memCounter++;
             }
-            //currPCB.status = PCB.state.READY;
             currPCB.trackingInfo.waitStartTime = System.nanoTime();
         }
 

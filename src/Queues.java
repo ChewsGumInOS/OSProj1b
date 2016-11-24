@@ -7,7 +7,6 @@ public class Queues {
     static LinkedList<PCB> diskQueue;
     static LinkedList<PCB> readyQueue;
     static LinkedList<PCB> waitingQueue;    //not used yet
-    static LinkedList<PCB>[] runningQueues;
     static LinkedList<PCB> doneQueue;       //for reporting purposes, to track complete jobs
 
 
@@ -15,15 +14,15 @@ public class Queues {
 
     static SynchronousQueue<Integer>[] cpuActiveQueue;
 
+    static LinkedBlockingQueue<PageRequest> pageRequestQueue;
+
+
     static public void initQueues () {
         diskQueue = new LinkedList<>();
         readyQueue = new LinkedList<>();
-        waitingQueue = new LinkedList<>();      //not used yet
+        waitingQueue = new LinkedList<>();
         doneQueue = new LinkedList<>();
-        //(currently) 4 running queues, 1 for each processor.
-        //each CPU's runningQueue stores the currently running process's PCB.
-        runningQueues = new LinkedList[CPU.CPU_COUNT];
-
+        //while running, job's PCB is "held" by the CPU it is running on (cpu.currPCB)
 
         //freeCpuQueue: initialized with size 4, because 4 free CPU's.
         //scheduler keeps removing free cpu's as they are assigned - scheduler blocks at 0.
@@ -36,7 +35,6 @@ public class Queues {
 
 
         for (int i = 0 ; i < CPU.CPU_COUNT; i++) {
-            runningQueues[i] = new LinkedList<>();
             freeCpuQueue.add(i);
             cpuActiveQueue[i] = new SynchronousQueue();
         }

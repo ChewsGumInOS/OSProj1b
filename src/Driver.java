@@ -24,7 +24,7 @@ public class Driver {
         Scanner userInput = new Scanner(System.in);
         int iterations;
 
-        ArrayList<MemoryClass> coreDumpArray;
+        ///ArrayList<MemoryClass> coreDumpArray;
         int numTimingFields = 5;    //4 columns: jobId, cpuId, Waiting Time, Completion Time, Execution Time.
         long[][][] timingArray = null;
         long[][] avgTimingArray;   //just Waiting Time(avg) and Completion Time(avg)
@@ -61,7 +61,7 @@ public class Driver {
             java.io.File file = new java.io.File("Program-File.txt");
 
             try ( //try with resources (auto-closes Scanner)
-                  Scanner input = new Scanner(file);
+                Scanner input = new Scanner(file);
             ) {
                 Queues.initQueues();
                 MemorySystem.initMemSystem();
@@ -69,7 +69,7 @@ public class Driver {
                 LongScheduler longScheduler = new LongScheduler(policy);
                 syncObject = new SyncObject();
 
-                /*
+
                 cpu = new CPU[CPU.CPU_COUNT];
                 executor = Executors.newFixedThreadPool(CPU.CPU_COUNT);
 
@@ -78,9 +78,11 @@ public class Driver {
                     executor.execute(cpu[j]);
                 }
 
-                coreDumpArray = new ArrayList();
-                */
+                PageManager pageManager = new PageManager();
+                Thread pageManThread = new Thread(pageManager);
+                pageManThread.start();
 
+                ///coreDumpArray = new ArrayList();
 
                 loader.load(input);
                 outputDiskToFile();  //debugging method to check if the Loader loaded the disk properly.
@@ -90,100 +92,28 @@ public class Driver {
                 longScheduler.schedule();       //load processes into memory from disk.
                 outputMemToFile();  //debugging method to check if the LTS loaded the disk properly.
 
-            } //added
-        }//added
-    }//added
-
-    //outputDiskToFile: debugging method to check if Loader loaded disk properly.
-    //Outputs Disk to File, to check if Disk wrote properly.
-    public static void outputDiskToFile() {
-        try {
-            java.io.File diskDumpFile = new java.io.File("diskDump.txt");
-            java.io.PrintWriter diskDump = new java.io.PrintWriter(diskDumpFile);
-
-            String padding = "00000000";
-
-            for (int i = 0; i < MemorySystem.disk.DISK_SIZE; i++) {
-                for (int j = 0; j < 4; j++) {
-                    String unpaddedHex = Integer.toHexString(MemorySystem.disk.diskArray[i][j]).toUpperCase();
-                    String paddedHex = padding.substring(unpaddedHex.length()) + unpaddedHex;
-                    paddedHex = "0x" + paddedHex;
-                    diskDump.println(paddedHex);
-                }
-            }
-            diskDump.close();
-        }
-        catch (FileNotFoundException ex){
-            ex.printStackTrace();
-        }
-    }
-
-
-    //outputMemToFile: debugging method to check if LTS loaded memory properly.
-    //Outputs Memory to File.
-    public static void outputMemToFile() {
-        try {
-            java.io.File memDumpFile = new java.io.File("memDump.txt");
-            java.io.PrintWriter memDump = new java.io.PrintWriter(memDumpFile);
-
-            String padding = "00000000";
-
-            for (int i = 0; i < MemorySystem.memory.MEM_SIZE; i++) {
-                for (int j = 0; j < 4; j++) {
-                    String unpaddedHex = Integer.toHexString(MemorySystem.memory.memArray[i][j]).toUpperCase();
-                    String paddedHex = padding.substring(unpaddedHex.length()) + unpaddedHex;
-                    paddedHex = "0x" + paddedHex;
-                    memDump.println(paddedHex);
-                }
-            }
-            memDump.close();
-        }
-        catch (FileNotFoundException ex){
-            ex.printStackTrace();
-        }
-    }
-
-
-}//added
-
-                /*
-
                 /////////////////////////////////////////////////////////////////////////////////
                 //                        Begin Main Driver Loop
                 /////////////////////////////////////////////////////////////////////////////////
                 do {
-
                     ShortScheduler.schedule();      //pick one job from the ready Queue to run on a CPU
+                }
+                while (checkForMoreJobs());
+                /////////////////////////////////////////////////////////////////////////////////
+                //                          END Main Driver Loop
+                /////////////////////////////////////////////////////////////////////////////////
 
-                    if (Queues.readyQueue.size() == 0) {
-
-                        //need to wait for the CPUs to finish running before longScheduler overwrites memory.
-                        //and before we do a core dump.
-                        while (Queues.freeCpuQueue.size() < CPU.CPU_COUNT) {
-                            synchronized (syncObject) {
-                                try {
-                                    syncObject.wait();
-                                } catch (InterruptedException ie) {
-                                    System.err.println(ie.toString());
-                                }
-                            }
-
-                        }
-
-                        if (logging) {
-                            //if the readyQueue is empty, then we have processed all the jobs in the ready queue
-                            //and we are ready to do a core dump.
-                            saveMemoryForCoreDump(coreDumpArray);
+                //////WAIT FOR CPU'S TO FINISH EXECUTING/////////
+                while (Queues.freeCpuQueue.size() < CPU.CPU_COUNT) {
+                    synchronized (syncObject) {
+                        try {
+                            syncObject.wait();
+                        } catch (InterruptedException ie) {
+                            System.err.println(ie.toString());
                         }
                     }
                 }
 
-                while (checkForMoreJobs());
-
-
-                /////////////////////////////////////////////////////////////////////////////////
-                //                          END Main Driver Loop
-                /////////////////////////////////////////////////////////////////////////////////
 
                 //create timing array (if not already created)
                 if (timingArray == null) {
@@ -194,7 +124,7 @@ public class Driver {
 
                 if (logging) {
                     writeOutputFile();
-                    writeCoreDumpFiles(coreDumpArray);
+                    ///writeCoreDumpFiles(coreDumpArray);
                     if (CHECK_OUTPUT_MODE) {
                         //compare output to gold standard
                         //do this after writing output files, because it sorts the DoneQueue.
@@ -203,15 +133,17 @@ public class Driver {
                 }
 
 
-                //shutdown the CPU's.
-                for (int k = 0; k < CPU.CPU_COUNT; k++) {
-                    try {
+                try {
+                    //shutdown the CPU's.
+                    for (int k = 0; k < CPU.CPU_COUNT; k++)
                         Queues.cpuActiveQueue[k].put(-1);
-                    } catch (InterruptedException ie) {
-                        System.err.println(ie.toString());
-                    }
+                    executor.shutdown();
+
+                    //shutdown the Page Manager.
+                    Queues.pageRequestQueue.put(new PageRequest(null,-1));
+                } catch (InterruptedException ie) {
+                    System.err.println(ie.toString());
                 }
-                executor.shutdown();
 
             }
         }
@@ -228,15 +160,15 @@ public class Driver {
 
 
     public static boolean checkForMoreJobs () {
-        //return ((Queues.diskQueue.size() != 0) || (Queues.readyQueue.size() != 0) || (Queues.runningQueue.size() != 0));
         return ((Queues.diskQueue.size() != 0) || (Queues.readyQueue.size() != 0));
     }
 
-    public static void saveMemoryForCoreDump(ArrayList<MemoryClass> coreDumpArray) {
-        MemoryClass currCoreDump = new MemoryClass();
-        System.arraycopy(MemorySystem.memory.memArray, 0, currCoreDump.memArray, 0, MemorySystem.memory.MEM_SIZE);
-        coreDumpArray.add(currCoreDump);
-    }
+
+    ///public static void saveMemoryForCoreDump(ArrayList<MemoryClass> coreDumpArray) {
+    ///    MemoryClass currCoreDump = new MemoryClass();
+    ///    System.arraycopy(MemorySystem.memory.memArray, 0, currCoreDump.memArray, 0, MemorySystem.memory.MEM_SIZE);
+    ///    coreDumpArray.add(currCoreDump);
+    ///}
 
 
     //debugging method: compares the output to an output file that we know is correct.
@@ -282,9 +214,9 @@ public class Driver {
         java.io.File outputFile = new java.io.File("output.txt");
         try {
             java.io.PrintWriter output = new java.io.PrintWriter(outputFile);
-            String strMemUsage = "max memory usage: " + LongScheduler.maxMemUsed;
-            System.out.println(strMemUsage);
-            output.println(strMemUsage);
+            //String strMemUsage = "max memory usage: " + LongScheduler.maxMemUsed;
+            //System.out.println(strMemUsage);
+            //output.println(strMemUsage);
 
             for (PCB thisPCB : Queues.doneQueue) {
                 output.println("Job:" + thisPCB.jobId + "\tNumber of io operations: " + thisPCB.trackingInfo.ioCounter
@@ -303,27 +235,27 @@ public class Driver {
     }
 
     // Log Core Dumps to Files
-    public static void writeCoreDumpFiles(ArrayList<MemoryClass> coreDumpArray) {
-        try {
-            for (int j = 0; j < coreDumpArray.size(); j++) {
-                java.io.File coreDumpFile = new java.io.File("coreDump" + (j + 1) + ".txt");
-                java.io.PrintWriter coreDump = new java.io.PrintWriter(coreDumpFile);
+    ///public static void writeCoreDumpFiles(ArrayList<MemoryClass> coreDumpArray) {
+    ///    try {
+    ///        for (int j = 0; j < coreDumpArray.size(); j++) {
+    ///            java.io.File coreDumpFile = new java.io.File("coreDump" + (j + 1) + ".txt");
+    ///            java.io.PrintWriter coreDump = new java.io.PrintWriter(coreDumpFile);
 
-                String padding = "00000000";
-                for (int k = 0; k < MemorySystem.memory.MEM_SIZE; k++) {
-                    //coreDump.println(coreDumpArray.get(j).memArray[k]);
-                    String unpaddedHex = Integer.toHexString(coreDumpArray.get(j).memArray[k]).toUpperCase();
-                    String paddedHex = padding.substring(unpaddedHex.length()) + unpaddedHex;
-                    paddedHex = "0x" + paddedHex;
-                    coreDump.println(paddedHex);
-                }
-                coreDump.close();
-            }
-        }
-        catch (FileNotFoundException ex){
-            ex.printStackTrace();
-        }
-    }
+    ///           String padding = "00000000";
+    ///            for (int k = 0; k < MemorySystem.memory.MEM_SIZE; k++) {
+    ///                //coreDump.println(coreDumpArray.get(j).memArray[k]);
+    ///                String unpaddedHex = Integer.toHexString(coreDumpArray.get(j).memArray[k]).toUpperCase();
+    ///                String paddedHex = padding.substring(unpaddedHex.length()) + unpaddedHex;
+    ///                paddedHex = "0x" + paddedHex;
+    ///                coreDump.println(paddedHex);
+    ///            }
+    ///            coreDump.close();
+    ///        }
+    ///    }
+    ///    catch (FileNotFoundException ex){
+    ///        ex.printStackTrace();
+    ///    }
+    ///}
 
     // save Timing Data for current iteration.
     public static void saveTimingDataForThisIteration(int i, long [][][] timingArray) {
@@ -399,5 +331,54 @@ public class Driver {
         }
     }
 
+
+    public static String convertIntInstructionToHex(int instructionAsInt) {
+        String padding = "00000000";
+        String unpaddedHex = Integer.toHexString(instructionAsInt).toUpperCase();
+        String paddedHex = padding.substring(unpaddedHex.length()) + unpaddedHex;
+        paddedHex = "0x" + paddedHex;
+        return paddedHex;
+    }
+
+
+    //outputDiskToFile: debugging method to check if Loader loaded disk properly.
+    //Outputs Disk to File, to check if Disk wrote properly.
+    public static void outputDiskToFile() {
+        try {
+            java.io.File diskDumpFile = new java.io.File("diskDump.txt");
+            java.io.PrintWriter diskDump = new java.io.PrintWriter(diskDumpFile);
+
+            for (int i = 0; i < MemorySystem.disk.DISK_SIZE; i++) {
+                for (int j = 0; j < 4; j++) {
+                    diskDump.println(convertIntInstructionToHex(MemorySystem.disk.diskArray[i][j]));
+                }
+            }
+            diskDump.close();
+        }
+        catch (FileNotFoundException ex){
+            ex.printStackTrace();
+        }
+    }
+
+
+    //outputMemToFile: debugging method to check if LTS loaded memory properly.
+    //Outputs Memory to File.
+    public static void outputMemToFile() {
+        try {
+            java.io.File memDumpFile = new java.io.File("memDump.txt");
+            java.io.PrintWriter memDump = new java.io.PrintWriter(memDumpFile);
+
+            for (int i = 0; i < MemorySystem.memory.MEM_SIZE; i++) {
+                for (int j = 0; j < 4; j++) {
+                    memDump.println(convertIntInstructionToHex(MemorySystem.memory.memArray[i][j]));
+                }
+            }
+            memDump.close();
+        }
+        catch (FileNotFoundException ex){
+            ex.printStackTrace();
+        }
+    }
+
+
 }
-*/
