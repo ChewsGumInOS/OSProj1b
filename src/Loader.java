@@ -15,6 +15,7 @@ public class Loader {
         /////////////////////////////////////////////////////////////////////////////////
 
         int diskCounter = 0;            //track where we are on the disk.
+        int orderIn = 0;
 
         while (input.hasNext()) {
 
@@ -58,6 +59,9 @@ public class Loader {
                     /////////////////////////////////////////////////////////////////////////////////
 
 
+                    currJob.order = orderIn;
+                    orderIn++;
+
                     //make a note of where the job starts on the disk - the first frame.
                     currJob.memories.disk_base_register = diskCounter/4;
                     currJob.pc = 0;
@@ -79,9 +83,9 @@ public class Loader {
                             diskCounter++;
                         }
                     }
-                    //move to a fresh frame; update diskCounter.
-                    if (diskCounter%4 != 0)
-                        diskCounter += 4 - diskCounter%4;
+                    ////move to a fresh frame; update diskCounter.
+                    //if (diskCounter%4 != 0)
+                    //    diskCounter += 4 - diskCounter%4;
 
                     /////////////////////////////////////////////////////////////////////////////////
                     //                           END READING INSTRUCTIONS

@@ -11,12 +11,20 @@ import static java.lang.System.exit;
 
 public class Driver {
 
+
+    final static int FIFO = 1;
+    final static int PRIORITY = 2;
+    final static int SJF = 3;
+
+    static int policy = FIFO;                       //current scheduling algorithm; FIFO is default.
+
+
     public static final boolean CHECK_OUTPUT_MODE = true;      //to check output when complete.
     public static boolean logging;       //set to true if we want to output the results(buffers) to a file.
 
+
     static ExecutorService executor;
     static CPU[] cpu;
-    static SyncObject syncObject;
 
 
     public static void main(String[] args) throws FileNotFoundException {
@@ -37,7 +45,7 @@ public class Driver {
 
         System.out.println("Welcome to the SimpleOS Simulator.\t");
         System.out.print("Enter Scheduling Policy (1 for FIFO, 2 for Priority, 3 for SJF:\t");
-        int policy = userInput.nextInt();
+        policy = userInput.nextInt();
 
         System.out.print("Log output for 1 iteration?(y/n)\t");
         String logChoice = userInput.next();
@@ -66,9 +74,6 @@ public class Driver {
                 Queues.initQueues();
                 MemorySystem.initMemSystem();
                 Loader loader = new Loader();
-                LongScheduler longScheduler = new LongScheduler(policy);
-                syncObject = new SyncObject();
-
 
                 cpu = new CPU[CPU.CPU_COUNT];
                 executor = Executors.newFixedThreadPool(CPU.CPU_COUNT);
@@ -89,38 +94,19 @@ public class Driver {
 
                 numJobs = Queues.diskQueue.size();
 
-                longScheduler.schedule();       //load processes into memory from disk.
+                LongScheduler.schedule();       //load processes into memory from disk.
                 outputMemToFile();  //debugging method to check if the LTS loaded the disk properly.
 
                 /////////////////////////////////////////////////////////////////////////////////
                 //                        Begin Main Driver Loop
                 /////////////////////////////////////////////////////////////////////////////////
                 do {
-                    ShortScheduler.schedule();      //pick one job from the ready Queue to run on a CPU
+                    ScheduleAndDispatch.schedule();      //pick one job from the ready Queue to run on a CPU
                 }
                 while (checkForMoreJobs());
                 /////////////////////////////////////////////////////////////////////////////////
                 //                          END Main Driver Loop
                 /////////////////////////////////////////////////////////////////////////////////
-
-                //////WAIT FOR CPU'S TO FINISH EXECUTING/////////
-                while (Queues.freeCpuQueue.size() < CPU.CPU_COUNT) {
-                    synchronized (syncObject) {
-                        try {
-                            syncObject.wait();
-                        } catch (InterruptedException ie) {
-                            System.err.println(ie.toString());
-                        }
-                    }
-                }
-
-
-                //create timing array (if not already created)
-                if (timingArray == null) {
-                    timingArray = new long[iterations][Queues.doneQueue.size()][numTimingFields];
-                }
-                saveTimingDataForThisIteration(i, timingArray);
-
 
                 if (logging) {
                     writeOutputFile();
@@ -131,6 +117,16 @@ public class Driver {
                         checkOutputIsCorrect();
                     }
                 }
+
+                /*
+                //create timing array (if not already created)
+                if (timingArray == null) {
+                    timingArray = new long[iterations][Queues.doneQueue.size()][numTimingFields];
+                }
+                saveTimingDataForThisIteration(i, timingArray);
+                */
+
+
 
 
                 try {
@@ -145,6 +141,7 @@ public class Driver {
                     System.err.println(ie.toString());
                 }
 
+
             }
         }
 
@@ -153,14 +150,19 @@ public class Driver {
         /////////////////////////////////////////////////////////////////////////////////
 
         // Process and Output Timing Data
-        avgTimingArray = new long [numJobs][numTimingFields];
-        outputTimingData(avgTimingArray, timingArray, numJobs, iterations);
+        //avgTimingArray = new long [numJobs][numTimingFields];
+        //outputTimingData(avgTimingArray, timingArray, numJobs, iterations);
     }
 
 
 
     public static boolean checkForMoreJobs () {
-        return ((Queues.diskQueue.size() != 0) || (Queues.readyQueue.size() != 0));
+        synchronized (Queues.queueLock) {
+            //System.out.println ("disk: " + Queues.diskQueue.size() + "\tready: " + Queues.readyQueue.size()
+            //                 + "\twaiting: " + Queues.waitingQueue.size());
+            //return ((Queues.diskQueue.size() != 0) || (Queues.readyQueue.size() != 0) || (Queues.waitingQueue.size() != 0));
+            return (Queues.doneQueue.size() != 30);
+        }
     }
 
 
@@ -173,15 +175,11 @@ public class Driver {
 
     //debugging method: compares the output to an output file that we know is correct.
     public static boolean checkOutputIsCorrect() throws FileNotFoundException {
-
         java.io.File goodFile = new java.io.File("CorrectOutput.txt");
         try ( //try with resources (auto-closes Scanner)
             Scanner goodInput = new Scanner(goodFile);
         ) {
-            //String goodResults = new Scanner(goodFile).useDelimiter("\\Z").next();
-
             ArrayList<String> goodResults = new ArrayList<>();
-
             while (goodInput.hasNext()) {
                 StringBuilder temp = new StringBuilder();
                 for (int i = 0; i < 4; i++) {
@@ -190,17 +188,18 @@ public class Driver {
                 }
                 goodResults.add(temp.toString());
             }
-
-            System.out.println (goodResults.size());
-
-            Queues.doneQueue.sort((PCB o1, PCB o2) -> o1.jobId - o2.jobId);
-
+            //make a copy of the doneQueue because we are going to sort it - don't want to mess up the original.
+            LinkedList<PCB> tempDoneQueue = new LinkedList<>();
+            for (PCB thisPCB : Queues.doneQueue) {
+                tempDoneQueue.add(thisPCB);
+            }
+            tempDoneQueue.sort((PCB o1, PCB o2) -> o1.jobId - o2.jobId);
             for (int i = 0; i < goodResults.size(); i++) {
-                boolean isMatch = goodResults.get(i).equals(Queues.doneQueue.get(i).trackingInfo.buffers);
+                boolean isMatch = goodResults.get(i).equals(tempDoneQueue.get(i).trackingInfo.buffers);
                 if (!isMatch) {
                     System.out.println("Warning: output does not match gold standard.");
                     System.out.println(goodResults.get(i));
-                    System.out.println(Queues.doneQueue.get(i).trackingInfo.buffers);
+                    System.out.println(tempDoneQueue.get(i).trackingInfo.buffers);
                 }
             }
             return false;

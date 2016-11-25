@@ -6,7 +6,7 @@ public class CPU implements Runnable {
     public static final int NUM_REGISTERS = 16;
     public static final int DMA_DELAY = 10;     //delay DMA by X nanoseconds to simulate actual IO.
     public static final int CACHE_SIZE = PCB.TABLE_SIZE; //=20; code is simplified by having the cache mirror page table.
-    public final static int CPU_COUNT = 4;
+    public static final int CPU_COUNT = 4;
 
     int cpuId;
 
@@ -40,7 +40,7 @@ public class CPU implements Runnable {
         int data;
     }
 
-    int pageFaultAddress = 0;   //set by execute, in the event of a page fault.
+    int pageFaultNumber = 0;   //set by execute, in the event of a page fault.
 
 
     /////////////////////////////////////////////////////////////////////////////////
@@ -60,7 +60,6 @@ public class CPU implements Runnable {
     public CPU (int cpuId) {
         reg = new int[NUM_REGISTERS];
         cache = new Cache();
-
         this.cpuId = cpuId;
     }
 
@@ -81,6 +80,9 @@ public class CPU implements Runnable {
                     return;
                 }
 
+                /////////////////////////////////////////////////////////////////////////////////
+                //                  BEGIN  Fetch-Decode-Execute and pageFault detection
+                /////////////////////////////////////////////////////////////////////////////////
                 pageFault = false;
                 while ((!pageFault) && (pc < currPCB.codeSize)) {
                     cacheResult = fetchFromCache(pc);
@@ -88,33 +90,40 @@ public class CPU implements Runnable {
                         currInstruction = decode(cacheResult.data);
                         if (execute(currInstruction))
                             pc++;
-                        else {
-                            pageFault = true;
-                        }
+                        else
+                            pageFault = true;   //page fault from within IO instruction being executed.
                     }
-                    else { //page fault accessing next line of code.
+                    else {                      //page fault from accessing next line of code.
                         pageFault = true;
-                        pageFaultAddress = pc;
-                        //if cache was modified, copy modified words from cache back into memory.
-                        if (cache.changed) {
-                            DMA dma = new DMA();
-                            Thread dmaThread = new Thread(dma);
-                            dmaThread.start();
-                            dmaThread.join();
-                        }
+                        pageFaultNumber = pc/4;
                     }
                 }
-                Dispatcher.save(this);
+                /////////////////////////////////////////////////////////////////////////////////
+                //                  END  Fetch-Decode-Execute and pageFault detection
+                /////////////////////////////////////////////////////////////////////////////////
 
-                if (pageFault)
 
-                    Queues.pageRequestQueue.put(new PageRequest(currPCB,pageFaultAddress));
 
-                if (currPCB.goodFinish) {
-                    synchronized (Driver.syncObject) {      //notify Driver that CPU is done running a job.
-                        Driver.syncObject.notify();
+                if (pageFault) {
+                    //if cache was modified, copy modified words from cache back into memory.
+                    if (cache.changed) {
+                        DMA dma = new DMA();
+                        Thread dmaThread = new Thread(dma);
+                        dmaThread.start();
+                        dmaThread.join();
                     }
+                    ScheduleAndDispatch.save(this);
+                    Queues.pageRequestQueue.put(new PageRequest (currPCB, pageFaultNumber));
                 }
+                else {
+                    ScheduleAndDispatch.save(this);
+                }
+                Queues.freeCpuQueue.put(cpuId);
+
+                //if (currPCB.goodFinish)
+                //    synchronized (Queues.waitForFinishLock) {      //notify Driver that CPU is done running a job.
+                //        Queues.waitForFinishLock.notify();
+                //}
             }
         } catch (InterruptedException ie) {
             System.err.println(ie.toString());
@@ -191,69 +200,63 @@ public class CPU implements Runnable {
     public boolean execute(Instruction instruction) {
 
         boolean result = true;
+        CacheResult cacheResult;
+
         switch (instruction.opcode) {
-
-            case Instruction.RD:
-            case Instruction.WR:
-            case Instruction.LW:
-            case Instruction.ST:
-                CacheResult cacheResult;
-
-                switch (instruction.opcode) {
-                    //case Instruction.IO:
-                    case Instruction.RD:    //Reads content of I/P buffer into a accumulator
-                        cacheResult = readCache(instruction.reg3 + reg[instruction.reg2]);
-                        if (cacheResult.valid)
-                            reg[instruction.reg1] = cacheResult.data;
-                        else {
-                            result = false;
-                            pageFaultAddress = instruction.reg3 + reg[instruction.reg2];
-                        }
-                        break;
-
-                    //case Instruction.IO:
-                    case Instruction.WR:    //Writes the content of accumulator into O/P buffer
-                        if (instruction.reg3 != 0) {
-                            cacheResult = writeCache(instruction.reg3, reg[instruction.reg1]);
-                            pageFaultAddress = instruction.reg3;
-                        }
-                        else {
-                            cacheResult = writeCache(reg[instruction.reg2], reg[instruction.reg1]);
-                            pageFaultAddress = reg[instruction.reg2];
-                        }
-                        if (cacheResult.valid) {
-                            cache.changed = true;
-                        }
-                        else {
-                            result = false;
-                        }
-                        break;
-
-                    //case Instruction.CBI:
-                    case Instruction.LW: //Loads the content of an address into a reg.
-                        cacheResult = readCache(instruction.reg3 + reg[instruction.reg1]);
-                        if (cacheResult.valid)
-                            reg[instruction.reg2] = cacheResult.data;
-                        else {
-                            result = false;
-                            pageFaultAddress = instruction.reg3 + reg[instruction.reg1];
-                        }
-                        break;
-
-                    //case Instruction.CBI:
-                    case Instruction.ST: //Stores content of a reg. into an address
-                        cacheResult = writeCache(reg[instruction.reg2] + instruction.reg3, reg[instruction.reg1]);
-                        if (cacheResult.valid) {
-                            cache.changed = true;
-                        }
-                        else {
-                            result = false;
-                            pageFaultAddress = reg[instruction.reg2] + instruction.reg3;
-                        }
-                        break;
-
+            //case Instruction.IO:
+            case Instruction.RD:    //Reads content of I/P buffer into a accumulator
+                cacheResult = readCache(instruction.reg3 + reg[instruction.reg2]);
+                if (cacheResult.valid)
+                    reg[instruction.reg1] = cacheResult.data;
+                else {
+                    result = false;
+                    pageFaultNumber = cacheResult.page;
                 }
                 break;
+
+            //case Instruction.IO:
+            case Instruction.WR:    //Writes the content of accumulator into O/P buffer
+                if (instruction.reg3 != 0) {
+                    cacheResult = writeCache(instruction.reg3, reg[instruction.reg1]);
+                    pageFaultNumber = cacheResult.page;
+                }
+                else {
+                    cacheResult = writeCache(reg[instruction.reg2], reg[instruction.reg1]);
+                    pageFaultNumber = cacheResult.page;
+                }
+                if (cacheResult.valid) {
+                    cache.changed = true;
+                }
+                else {
+                    result = false;
+                }
+                break;
+
+            //case Instruction.CBI:
+            case Instruction.LW: //Loads the content of an address into a reg.
+                cacheResult = readCache(instruction.reg3 + reg[instruction.reg1]);
+                if (cacheResult.valid)
+                    reg[instruction.reg2] = cacheResult.data;
+                else {
+                    result = false;
+                    pageFaultNumber = cacheResult.page;
+                }
+                break;
+
+            //case Instruction.CBI:
+            case Instruction.ST: //Stores content of a reg. into an address
+                cacheResult = writeCache(reg[instruction.reg2] + instruction.reg3, reg[instruction.reg1]);
+                if (cacheResult.valid) {
+                    cache.changed = true;
+                }
+                else {
+                    result = false;
+                    pageFaultNumber = cacheResult.page;
+                }
+                break;
+
+
+
             //case Instruction.ARITHMETIC:
             case Instruction.ADD: //Adds content of two S-regs into D-reg
                 reg[instruction.reg3] = reg[instruction.reg1] + reg[instruction.reg2];
@@ -443,75 +446,62 @@ public class CPU implements Runnable {
         }
     }
 
-
-    //public int getEffectiveAddress (int offset) {
-    //    return base_reg + offset;
-    //}
-
     //for printing the results of the job to a file.
-    /*
     public String outputResults() {
 
         StringBuilder results = new StringBuilder();
         results.append("Job ID:\t");
-        results.append(jobId);
+        results.append(currPCB.jobId);
         results.append("\r\nInput:\t");
-        for (int i = 0; i < inputBufferSize; i++) {
-            results.append(readCache((codeSize + i)*4)); //*4 to convert from words to bytes
+        for (int i = 0; i < currPCB.inputBufferSize; i++) {
+            results.append(readCache((currPCB.codeSize + i)*4).data);
             results.append(" ");
         }
         results.append("\r\nOutput:\t");
-        for (int i = 0; i < outputBufferSize; i++) {
-            results.append(readCache((codeSize + inputBufferSize + i)*4));//*4 to convert from words to bytes
+        for (int i = 0; i < currPCB.outputBufferSize; i++) {
+            results.append(readCache((currPCB.codeSize + currPCB.inputBufferSize + i)*4).data);
             results.append(" ");
         }
         results.append("\r\nTemp:\t");
-        for (int i = 0; i < tempBufferSize; i++) {
-            results.append(readCache((codeSize + inputBufferSize + outputBufferSize + i)*4));//*4 to convert from words to bytes
+        for (int i = 0; i < currPCB.tempBufferSize; i++) {
+            results.append(readCache((currPCB.codeSize + currPCB.inputBufferSize + currPCB.outputBufferSize + i)*4).data);
             results.append(" ");
         }
         results.append("\r\n");
 
         return results.toString();
     }
-*/
 
     //debugging method - prints current instruction.
-    public void printInstruction(Instruction instruction) {
+    public String printInstruction(Instruction instruction) {
 
         String [] opStrings = {"RD", "WR", "ST", "LW", "MOV", "ADD", "SUB", "MUL", "DIV", "AND", "OR", "MOVI", "ADDI",
                 "MULI", "DIVI", "LDI", "SLT", "SLTI", "HLT", "NOP", "JMP", "BEQ", "BNE", "BEZ", "BNZ", "BGZ", "BLZ"};
 
+        String result = "";
+
         switch (instruction.type) {
-
             case Instruction.ARITHMETIC:
-                //RInstruction rCommand = (RInstruction) instruction;
-                System.out.print("Rtype. Opcode: " + instruction.opcode + " " + opStrings[instruction.opcode] + "\t");
-                System.out.println("S1: " + instruction.reg1 + "  S2: " + instruction.reg2 + "  D: " + instruction.reg3);
+                result= "Rtype. Opcode: " + instruction.opcode + " " + opStrings[instruction.opcode] + "\t" +
+                         "S1: " + instruction.reg1 + "  S2: " + instruction.reg2 + "  D: " + instruction.reg3;
                 break;
-
             case Instruction.CBI:
-                //CBIInstruction cbiCommand = (CBIInstruction) instruction;
-                System.out.print("CBI.   Opcode: " + instruction.opcode + " " + opStrings[instruction.opcode] + "\t");
-                System.out.println("B: " + instruction.reg1 + "  D: " + instruction.reg2 + "  Ad: " + instruction.reg3);
+                result= "CBI.   Opcode: " + instruction.opcode + " " + opStrings[instruction.opcode] + "\t" +
+                        "B: " + instruction.reg1 + "  D: " + instruction.reg2 + "  Ad: " + instruction.reg3;
                 break;
-
             case Instruction.JUMP:
-                //JumpInstruction jumpCommand = (JumpInstruction) instruction;
-                System.out.print("Jump.  Opcode: " + instruction.opcode + " " + opStrings[instruction.opcode] + "\t");
-                System.out.println("Ad: " + instruction.reg1);
-
+                result= "Jump.  Opcode: " + instruction.opcode + " " + opStrings[instruction.opcode] + "\t" +
+                        "Ad: " + instruction.reg1;
                 break;
-
             case Instruction.IO:
-                //IOInstruction ioCommand = (IOInstruction) instruction;
-                System.out.print("IO.    Opcode: " + instruction.opcode + " " + opStrings[instruction.opcode] + "\t");
-                System.out.println("Reg1: " + instruction.reg1 + "  Reg2: " + instruction.reg2 + "  Ad: " + instruction.reg3);
+                result= "IO.    Opcode: " + instruction.opcode + " " + opStrings[instruction.opcode] + "\t" +
+                        "Reg1: " + instruction.reg1 + "  Reg2: " + instruction.reg2 + "  Ad: " + instruction.reg3;
                 break;
-
         }
+        return result;
     }
-/*
+
+    /*
     //debugging method - prints registers and buffers to screen.
     public void printDataBuffers() {
 

@@ -1,10 +1,10 @@
 public class PageRequest {
     PCB jobPCB;
-    int address;
+    int pageNumber;
 
-    public PageRequest (PCB jobPCB, int addr) {
+    public PageRequest (PCB jobPCB, int pageNumber) {
         this.jobPCB = jobPCB;
-        this.address = addr;
+        this.pageNumber = pageNumber;
     }
 }
 

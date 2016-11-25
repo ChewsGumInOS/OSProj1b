@@ -3,6 +3,8 @@ public class PCB {
 
     public static final int TABLE_SIZE = 20;
 
+    int order;  //used by FIFO - tracks who came in first.
+
     //job card info
     int jobId;
     int codeSize;
