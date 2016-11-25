@@ -23,6 +23,8 @@ public class Queues {
     static SynchronousQueue<Integer>[] cpuActiveQueue;
     static LinkedBlockingQueue<PageRequest> pageRequestQueue;
 
+    static LinkedBlockingQueue<PCB> freeFrameRequestQueue;
+
     //static SynchronousQueue<Integer>[] cpuDone;
 
     static public void initQueues () {
@@ -45,6 +47,7 @@ public class Queues {
         //cpuDone = new SynchronousQueue[CPU.CPU_COUNT];
 
         pageRequestQueue = new LinkedBlockingQueue<>();
+        freeFrameRequestQueue = new LinkedBlockingQueue<>();
 
         for (int i = 0 ; i < CPU.CPU_COUNT; i++) {
             //runningQueues[i] = new LinkedList<>();

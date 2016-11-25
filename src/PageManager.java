@@ -1,5 +1,3 @@
-import java.util.ListIterator;
-
 public class PageManager implements Runnable {
 
     public void run () {
@@ -22,7 +20,7 @@ public class PageManager implements Runnable {
                     return;
                 }
 
-                //load the requested page into memory.
+                //get a free frame of memory.
                 synchronized (Queues.frameListLock) {
                     freeFrame = MemorySystem.memory.freeFramesList.pop();
                 }
@@ -30,12 +28,13 @@ public class PageManager implements Runnable {
                 diskCounter = pageRequest.jobPCB.memories.disk_base_register;
                 jobFrame = pageRequest.pageNumber;
 
+                //copy the desired page from the disk to memory.
                 System.arraycopy(MemorySystem.disk.diskArray[diskCounter+jobFrame], 0, MemorySystem.memory.memArray[freeFrame], 0, 4);
                 pageRequest.jobPCB.memories.pageTable[jobFrame][0] = freeFrame;      //update page table
                 pageRequest.jobPCB.memories.pageTable[jobFrame][1] = 1;               //set to valid.
 
                 //now that the page has been loaded into memory,
-                //move the job out of the waiting queue, and to the top of the ready queue.
+                //move the job out of the waitingQueue, and to the top of the readyQueue.
                 synchronized (Queues.queueLock) {
                     Queues.waitingQueue.remove(pageRequest.jobPCB);
 
@@ -46,6 +45,7 @@ public class PageManager implements Runnable {
                         }
                     }
                     else {
+                        //insert the job into the readyQueue, depending on the scheduling algorithm.
                         boolean inserted = false;
                         int insertIndex = 0;
 

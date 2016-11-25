@@ -20,7 +20,7 @@ public class PCB {
 
     boolean goodFinish;
 
-    int cpuId;
+    //int cpuId;
 
     Memories memories;
     TrackingInfo trackingInfo;
@@ -39,7 +39,6 @@ public class PCB {
                 + "inputBufferSize:" + inputBufferSize + ".\t"
                 + "outputBufferSize:" + outputBufferSize + ".\t"
                 + "tempBufferSize:" + tempBufferSize + ".\t"
-                //+ "status:" + status + ".\t"
                 + "pc:" + pc + ".\t";
         return record;
     }
@@ -56,16 +55,17 @@ class Memories {
     int disk_data_base_reg;  //starting page of the job's data on disk.
 
     int[][] pageTable;      //pageTable column 0: pageNumber.  column 1: valid (1) or invalid (0).
+                            //column 2: modified.
 
     public Memories() {
-        pageTable = new int[PCB.TABLE_SIZE][2];
+        pageTable = new int[PCB.TABLE_SIZE][3];
     }
 }
 
 class TrackingInfo {
 
 
-    int ioCounter;                  //number of io operations each process made
+    volatile int ioCounter;                  //number of io operations each process made
     String buffers;                 //at job completion, output buffers written to this String.
 
     long waitStartTime;             //time entered Ready Queue (set by Long Term Scheduler)

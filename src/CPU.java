@@ -102,21 +102,19 @@ public class CPU implements Runnable {
                 //                  END  Fetch-Decode-Execute and pageFault detection
                 /////////////////////////////////////////////////////////////////////////////////
 
+                //if cache was modified, copy modified words from cache back into memory.
+                //(because the cache is going to be erased upon context switch)
+                if (cache.changed) {
+                    DMA dma = new DMA();
+                    Thread dmaThread = new Thread(dma);
+                    dmaThread.start();
+                    dmaThread.join();
+                }
 
+                ScheduleAndDispatch.save(this);
 
                 if (pageFault) {
-                    //if cache was modified, copy modified words from cache back into memory.
-                    if (cache.changed) {
-                        DMA dma = new DMA();
-                        Thread dmaThread = new Thread(dma);
-                        dmaThread.start();
-                        dmaThread.join();
-                    }
-                    ScheduleAndDispatch.save(this);
                     Queues.pageRequestQueue.put(new PageRequest (currPCB, pageFaultNumber));
-                }
-                else {
-                    ScheduleAndDispatch.save(this);
                 }
                 Queues.freeCpuQueue.put(cpuId);
 
@@ -559,6 +557,7 @@ public class CPU implements Runnable {
                                 MemorySystem.memory.writeMemoryAddress(currPage, j, cache.arr[i][j]);
                                 currPCB.trackingInfo.ioCounter++;       //update *total* IO count.
                                 currIOcount++;
+                                currPCB.memories.pageTable[i][2] = 1;   //set pagetable "dirty" indicator; must be written back to disk.
                             }
                         }
                     }

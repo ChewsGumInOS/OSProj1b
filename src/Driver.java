@@ -87,15 +87,20 @@ public class Driver {
                 Thread pageManThread = new Thread(pageManager);
                 pageManThread.start();
 
+                FrameFreer frameFreer = new FrameFreer();
+                Thread frameFreerThread = new Thread(frameFreer);
+                frameFreerThread.start();
+
+
                 ///coreDumpArray = new ArrayList();
 
                 loader.load(input);
-                outputDiskToFile();  //debugging method to check if the Loader loaded the disk properly.
+                //outputDiskToFile();  //debugging method to check if the Loader loaded the disk properly.
 
                 numJobs = Queues.diskQueue.size();
 
                 LongScheduler.schedule();       //load processes into memory from disk.
-                outputMemToFile();  //debugging method to check if the LTS loaded the disk properly.
+                //outputMemToFile();  //debugging method to check if the LTS loaded the disk properly.
 
                 /////////////////////////////////////////////////////////////////////////////////
                 //                        Begin Main Driver Loop
@@ -126,9 +131,6 @@ public class Driver {
                 saveTimingDataForThisIteration(i, timingArray);
                 */
 
-
-
-
                 try {
                     //shutdown the CPU's.
                     for (int k = 0; k < CPU.CPU_COUNT; k++)
@@ -137,10 +139,18 @@ public class Driver {
 
                     //shutdown the Page Manager.
                     Queues.pageRequestQueue.put(new PageRequest(null,-1));
+
+                    //shut down freeFrameManager.
+                    PCB shutDownRequest = new PCB();
+                    shutDownRequest.jobId = -1;
+                    Queues.freeFrameRequestQueue.put(shutDownRequest);
+
                 } catch (InterruptedException ie) {
                     System.err.println(ie.toString());
                 }
 
+
+                outputDiskToFile();  //debugging method to view the contents of the disk.
 
             }
         }
@@ -219,7 +229,7 @@ public class Driver {
 
             for (PCB thisPCB : Queues.doneQueue) {
                 output.println("Job:" + thisPCB.jobId + "\tNumber of io operations: " + thisPCB.trackingInfo.ioCounter
-                    + "\tJobSize: " + thisPCB.getJobSizeInMemory() + "\tCPUid: " + thisPCB.cpuId);
+                    + "\tJobSize: " + thisPCB.getJobSizeInMemory()); // + "\tCPUid: " + thisPCB.cpuId);
             }
 
             for (PCB thisPCB : Queues.doneQueue) {
@@ -265,7 +275,7 @@ public class Driver {
             //runStartTime  - time first started executing (entered Running Queue, set by Dispatcher)
             //runEndTime    - Completion Time = runEndTime - waitStartTime?
             timingArray[i][j][0] = thisPCB.jobId;
-            timingArray[i][j][1] = thisPCB.cpuId;
+            //timingArray[i][j][1] = thisPCB.cpuId;
             timingArray[i][j][2] = thisPCB.trackingInfo.runStartTime - thisPCB.trackingInfo.waitStartTime;
             timingArray[i][j][3] = thisPCB.trackingInfo.runEndTime - thisPCB.trackingInfo.waitStartTime;
             timingArray[i][j][4] = thisPCB.trackingInfo.runEndTime - thisPCB.trackingInfo.runStartTime;
@@ -340,8 +350,7 @@ public class Driver {
     }
 
 
-    //outputDiskToFile: debugging method to check if Loader loaded disk properly.
-    //Outputs Disk to File, to check if Disk wrote properly.
+    //outputDiskToFile: //debugging method to view the contents of the disk.
     public static void outputDiskToFile() {
         try {
             java.io.File diskDumpFile = new java.io.File("diskDump.txt");

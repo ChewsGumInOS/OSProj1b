@@ -103,21 +103,15 @@ public class ScheduleAndDispatch {
             /////////////////////////////////////////////////////////////////////////////////
             //  Job successfully completed - so free frames, add to DoneQueue, save output buffers.
             /////////////////////////////////////////////////////////////////////////////////
+            try {
+                Queues.freeFrameRequestQueue.put(currJob);
+            } catch (InterruptedException ie) {
+                System.err.println(ie.toString());
+            }
+
             if (Driver.logging)
                 currJob.trackingInfo.buffers = cpu.outputResults();
 
-            //free frames
-            synchronized (Queues.frameListLock) {
-                int frameToFree;
-                for (int i=0; i<PCB.TABLE_SIZE; i++) {
-                    if (currJob.memories.pageTable[i][1] == 1) {
-                        currJob.memories.pageTable[i][1] = 0;
-                        frameToFree = currJob.memories.pageTable[i][0];
-                        Arrays.fill(MemorySystem.memory.memArray[frameToFree],0);
-                        MemorySystem.memory.freeFramesList.addLast(frameToFree);
-                    }
-                }
-            }
             currJob.trackingInfo.runEndTime = System.nanoTime();
 
             synchronized (Queues.doneQueue) {
