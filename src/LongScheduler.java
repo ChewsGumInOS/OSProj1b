@@ -19,22 +19,29 @@ public class LongScheduler {
         int diskCounter; //current disk location being read
         PCB currPCB;
 
-        //keep reading jobs into memory until no more jobs to load.
-        while (!Queues.diskQueue.isEmpty()) {
+        try {
+            //keep reading jobs into memory until no more jobs to load.
+            while (!Queues.diskQueue.isEmpty()) {
 
-            currPCB = Queues.diskQueue.pop();  //read the top-most job on the disk table.
-            Queues.readyQueue.add(currPCB);
-            diskCounter = currPCB.memories.disk_base_register;
+                currPCB = Queues.diskQueue.pop();  //read the top-most job on the disk table.
+                Queues.readyQueue.add(currPCB);
+                currPCB.status = PCB.state.READY;
+                diskCounter = currPCB.memories.disk_base_register;
 
-            for (int i = 0; i < 4; i++) {  //copy first 4 frames of job into memory, from disk.
-                System.arraycopy(MemorySystem.disk.diskArray[diskCounter], 0, MemorySystem.memory.memArray[memCounter], 0, 4);
-                MemorySystem.memory.freeFramesList.pop();           //update freeFramesList (frame of memory has been filled)
-                currPCB.memories.pageTable[i][0] = memCounter;      //update page table
-                currPCB.memories.pageTable[i][1] = 1;               //set to valid.
-                diskCounter++;
-                memCounter++;
+                for (int i = 0; i < 4; i++) {  //copy first 4 frames of job into memory, from disk.
+                    System.arraycopy(MemorySystem.disk.diskArray[diskCounter], 0, MemorySystem.memory.memArray[memCounter], 0, 4);
+                    //MemorySystem.memory.freeFramesList.pop();           //update freeFramesList (frame of memory has been filled)
+                    MemorySystem.memory.freeFrameList.take();           //update freeFramesList (frame of memory has been filled)
+                    currPCB.memories.pageTable[i][0] = memCounter;      //update page table
+                    currPCB.memories.pageTable[i][1] = 1;               //set to valid.
+                    diskCounter++;
+                    memCounter++;
+                }
+                currPCB.trackingInfo.waitStartTime = System.nanoTime();
             }
-            currPCB.trackingInfo.waitStartTime = System.nanoTime();
+        }
+        catch (InterruptedException ie) {
+            System.err.println(ie.toString());
         }
 
         //for (PCB thisPCB : Queues.readyQueue) {

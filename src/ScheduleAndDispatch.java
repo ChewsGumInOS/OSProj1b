@@ -115,6 +115,7 @@ public class ScheduleAndDispatch {
             currJob.trackingInfo.runEndTime = System.nanoTime();
 
             synchronized (Queues.doneQueue) {
+                currJob.status = PCB.state.COMPLETE;
                 if (!Queues.doneQueue.contains(currJob))
                     Queues.doneQueue.add(currJob);
                 else {
@@ -127,6 +128,7 @@ public class ScheduleAndDispatch {
         else {
             synchronized (Queues.queueLock) {
                 Queues.waitingQueue.add(currJob);
+                currJob.status = PCB.state.WAITING;
             }
         }
     }

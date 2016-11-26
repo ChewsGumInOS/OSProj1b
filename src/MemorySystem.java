@@ -1,6 +1,7 @@
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class MemorySystem {
 
@@ -47,15 +48,24 @@ class MemoryClass {
 
     int[][] memArray;
 
-    LinkedList<Integer> freeFramesList;
+    //LinkedList<Integer> freeFramesList;
+    LinkedBlockingQueue<Integer> freeFrameList;
     //List freeFramesList = Collections.synchronizedList(new LinkedList<Integer>());
 
     public MemoryClass() {
         memArray = new int [MEM_SIZE][4];
-        freeFramesList = new LinkedList();
-        for (int i = 0; i < MEM_SIZE; i++) {
-            freeFramesList.add(i);
+        freeFrameList = new LinkedBlockingQueue<>();
+        //freeFramesList = new LinkedList();
+        try {
+            for (int i = 0; i < MEM_SIZE; i++) {
+                //freeFramesList.add(i);
+                freeFrameList.put(i);
+            }
         }
+        catch (InterruptedException ie) {
+            System.err.println(ie.toString());
+        }
+
     }
 
 

@@ -1,3 +1,5 @@
+import java.util.concurrent.TimeUnit;
+
 public class PageManager implements Runnable {
 
     public void run () {
@@ -21,15 +23,19 @@ public class PageManager implements Runnable {
                 }
 
                 //get a free frame of memory.
-                synchronized (Queues.frameListLock) {
-                    freeFrame = MemorySystem.memory.freeFramesList.pop();
-                }
+                //synchronized (Queues.frameListLock) {
+                //    freeFrame = MemorySystem.memory.freeFramesList.pop();
+                //}
+                freeFrame = MemorySystem.memory.freeFrameList.take();
+
 
                 diskCounter = pageRequest.jobPCB.memories.disk_base_register;
                 jobFrame = pageRequest.pageNumber;
 
                 //copy the desired page from the disk to memory.
                 System.arraycopy(MemorySystem.disk.diskArray[diskCounter+jobFrame], 0, MemorySystem.memory.memArray[freeFrame], 0, 4);
+                TimeUnit.NANOSECONDS.sleep(CPU.PAGE_FAULT_DELAY);  //delay to simulate disk access.
+
                 pageRequest.jobPCB.memories.pageTable[jobFrame][0] = freeFrame;      //update page table
                 pageRequest.jobPCB.memories.pageTable[jobFrame][1] = 1;               //set to valid.
 

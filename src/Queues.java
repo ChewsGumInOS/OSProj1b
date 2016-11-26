@@ -9,6 +9,7 @@ public class Queues {
     final static Object queueLock = new Object();
     final static Object frameListLock = new Object();
     final static Object waitForPageManagerLock = new Object();
+    final static Object waitForFrameFreerLock = new Object();
 
     static LinkedList<PCB> diskQueue;
     static LinkedList<PCB> readyQueue;
@@ -22,7 +23,6 @@ public class Queues {
     static LinkedBlockingQueue<Integer> freeCpuQueue;
     static SynchronousQueue<Integer>[] cpuActiveQueue;
     static LinkedBlockingQueue<PageRequest> pageRequestQueue;
-
     static LinkedBlockingQueue<PCB> freeFrameRequestQueue;
 
     //static SynchronousQueue<Integer>[] cpuDone;

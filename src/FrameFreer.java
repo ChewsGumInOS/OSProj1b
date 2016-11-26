@@ -1,4 +1,5 @@
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 public class FrameFreer implements Runnable {
 
@@ -11,8 +12,12 @@ public class FrameFreer implements Runnable {
                 currJob = Queues.freeFrameRequestQueue.take();
 
                 //this is how the Driver shuts down the PageManager after all jobs are processed.
-                if (currJob.jobId == -1)
+                if (currJob.jobId == -1) {
+                    synchronized (Queues.waitForFrameFreerLock) {
+                        Queues.waitForFrameFreerLock.notify();  //let the driver know FrameFreer is done.
+                    }
                     return;
+                }
 
                 //copy frames back to disk if modified, and free frames.
                 synchronized (Queues.frameListLock) {
@@ -25,11 +30,13 @@ public class FrameFreer implements Runnable {
                                 diskCounter = currJob.memories.disk_base_register + i;
                                 //copy the page from memory, back to disk.
                                 System.arraycopy(MemorySystem.memory.memArray[frameToFree], 0, MemorySystem.disk.diskArray[diskCounter], 0, 4);
+                                TimeUnit.NANOSECONDS.sleep(CPU.DISK_ACCESS_DELAY);  //delay to simulate disk access.
                             }
                             currJob.memories.pageTable[i][1] = 0;
 
                             Arrays.fill(MemorySystem.memory.memArray[frameToFree],0);
-                            MemorySystem.memory.freeFramesList.addLast(frameToFree);
+                            //MemorySystem.memory.freeFramesList.addLast(frameToFree);
+                            MemorySystem.memory.freeFrameList.put(frameToFree);
                         }
                     }
                 }

@@ -145,6 +145,13 @@ public class Driver {
                     shutDownRequest.jobId = -1;
                     Queues.freeFrameRequestQueue.put(shutDownRequest);
 
+                    if (frameFreerThread.isAlive()) {
+                        //System.out.println ("Warning: Frame Freer is still active.");
+                        synchronized (Queues.waitForFrameFreerLock) {
+                            Queues.waitForFrameFreerLock.wait();
+                        }
+                    }
+
                 } catch (InterruptedException ie) {
                     System.err.println(ie.toString());
                 }

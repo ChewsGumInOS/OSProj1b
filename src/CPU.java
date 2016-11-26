@@ -4,9 +4,12 @@ import java.util.concurrent.TimeUnit;
 public class CPU implements Runnable {
 
     public static final int NUM_REGISTERS = 16;
-    public static final int DMA_DELAY = 10;     //delay DMA by X nanoseconds to simulate actual IO.
     public static final int CACHE_SIZE = PCB.TABLE_SIZE; //=20; code is simplified by having the cache mirror page table.
     public static final int CPU_COUNT = 4;
+
+    public static final int DMA_DELAY = 10;            //delay DMA by X nanoseconds to simulate IO to/from RAM.
+    public static final int PAGE_FAULT_DELAY = 100;    //delay for loading a page from disk to memory.
+    public static final int DISK_ACCESS_DELAY = 100;   //delay for writing page back to disk.
 
     int cpuId;
 
@@ -79,6 +82,8 @@ public class CPU implements Runnable {
                 if (cpuShutdownCheck == -1) {
                     return;
                 }
+
+                currPCB.status = PCB.state.RUNNING;
 
                 /////////////////////////////////////////////////////////////////////////////////
                 //                  BEGIN  Fetch-Decode-Execute and pageFault detection

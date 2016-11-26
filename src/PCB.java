@@ -25,6 +25,9 @@ public class PCB {
     Memories memories;
     TrackingInfo trackingInfo;
 
+    public enum state {NEW, READY, RUNNING, WAITING, COMPLETE};
+    state status;  //note: this variable can be safely deleted, and is here for convenience - simulator uses the queues to track the status of the job.
+
 
     public PCB() {
         memories = new Memories();

@@ -66,6 +66,7 @@ public class Loader {
                     currJob.memories.disk_base_register = diskCounter/4;
                     currJob.pc = 0;
                     currJob.goodFinish = false;
+                    currJob.status = PCB.state.NEW;
 
                     /////////////////////////////////////////////////////////////////////////////////
                     //                           BEGIN READING INSTRUCTIONS
