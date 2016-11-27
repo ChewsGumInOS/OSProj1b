@@ -1,102 +1,102 @@
-Job:16	Number of io operations: 4	JobSize: 63
-Job:26	Number of io operations: 7	JobSize: 63
-Job:14	Number of io operations: 9	JobSize: 63
-Job:8	Number of io operations: 11	JobSize: 63
-Job:30	Number of io operations: 10	JobSize: 63
-Job:4	Number of io operations: 11	JobSize: 63
-Job:7	Number of io operations: 11	JobSize: 63
-Job:21	Number of io operations: 12	JobSize: 63
-Job:25	Number of io operations: 6	JobSize: 67
-Job:18	Number of io operations: 11	JobSize: 68
-Job:13	Number of io operations: 11	JobSize: 68
-Job:6	Number of io operations: 11	JobSize: 68
-Job:24	Number of io operations: 11	JobSize: 68
-Job:3	Number of io operations: 11	JobSize: 68
-Job:15	Number of io operations: 10	JobSize: 68
-Job:23	Number of io operations: 10	JobSize: 67
-Job:9	Number of io operations: 11	JobSize: 68
-Job:20	Number of io operations: 11	JobSize: 68
-Job:19	Number of io operations: 9	JobSize: 72
-Job:29	Number of io operations: 11	JobSize: 68
-Job:10	Number of io operations: 11	JobSize: 72
-Job:22	Number of io operations: 11	JobSize: 72
-Job:12	Number of io operations: 11	JobSize: 72
-Job:2	Number of io operations: 11	JobSize: 72
-Job:17	Number of io operations: 11	JobSize: 72
-Job:5	Number of io operations: 11	JobSize: 72
-Job:11	Number of io operations: 11	JobSize: 67
-Job:28	Number of io operations: 11	JobSize: 72
 Job:1	Number of io operations: 11	JobSize: 67
+Job:2	Number of io operations: 11	JobSize: 72
+Job:3	Number of io operations: 11	JobSize: 68
+Job:4	Number of io operations: 11	JobSize: 63
+Job:5	Number of io operations: 11	JobSize: 72
+Job:6	Number of io operations: 11	JobSize: 68
+Job:7	Number of io operations: 11	JobSize: 63
+Job:8	Number of io operations: 11	JobSize: 63
+Job:9	Number of io operations: 11	JobSize: 68
+Job:10	Number of io operations: 11	JobSize: 72
+Job:11	Number of io operations: 11	JobSize: 67
+Job:12	Number of io operations: 11	JobSize: 72
+Job:13	Number of io operations: 11	JobSize: 68
+Job:14	Number of io operations: 9	JobSize: 63
+Job:16	Number of io operations: 4	JobSize: 63
+Job:15	Number of io operations: 10	JobSize: 68
+Job:17	Number of io operations: 11	JobSize: 72
+Job:18	Number of io operations: 11	JobSize: 68
+Job:19	Number of io operations: 9	JobSize: 72
+Job:21	Number of io operations: 12	JobSize: 63
+Job:20	Number of io operations: 11	JobSize: 68
+Job:22	Number of io operations: 11	JobSize: 72
+Job:23	Number of io operations: 10	JobSize: 67
+Job:24	Number of io operations: 11	JobSize: 68
+Job:25	Number of io operations: 6	JobSize: 67
+Job:26	Number of io operations: 7	JobSize: 63
 Job:27	Number of io operations: 11	JobSize: 67
-Job ID:	16
-Input:	4 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-Output:	0 1 2 3 0 0 0 0 0 0 0 0 
+Job:28	Number of io operations: 11	JobSize: 72
+Job:29	Number of io operations: 11	JobSize: 68
+Job:30	Number of io operations: 10	JobSize: 63
+Job ID:	1
+Input:	10 6 44 69 1 7 0 1 5 10 85 0 0 0 0 0 0 0 0 0 
+Output:	228 0 0 0 0 0 0 0 0 0 0 0 
+Temp:	6 44 69 1 7 0 1 5 10 85 0 0 
+Job ID:	2
+Input:	10 6 44 69 1 7 0 1 5 10 85 0 0 0 0 0 0 0 0 0 
+Output:	85 0 0 0 0 0 0 0 0 0 0 0 
+Temp:	6 44 69 1 7 0 1 5 10 85 0 0 
+Job ID:	3
+Input:	10 6 44 69 1 9 176 1 7 170 85 0 0 0 0 0 0 0 0 0 
+Output:	56 0 0 0 0 0 0 0 0 0 0 0 
+Temp:	6 44 69 1 9 176 1 7 170 85 0 0 
+Job ID:	4
+Input:	11 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
+Output:	0 1 2 3 5 8 13 21 34 55 89 0 
 Temp:	0 0 0 0 0 0 0 0 0 0 0 0 
-Job ID:	26
-Input:	7 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-Output:	0 1 2 3 5 8 13 0 0 0 0 0 
-Temp:	0 0 0 0 0 0 0 0 0 0 0 0 
-Job ID:	14
-Input:	9 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-Output:	0 1 2 3 5 8 13 21 34 0 0 0 
+Job ID:	5
+Input:	10 6 44 69 1 23 0 1 5 170 85 0 0 0 0 0 0 0 0 0 
+Output:	170 0 0 0 0 0 0 0 0 0 0 0 
+Temp:	6 44 69 1 23 0 1 5 170 85 0 0 
+Job ID:	6
+Input:	10 13 44 69 222 9 176 1 7 170 85 0 0 0 0 0 0 0 0 0 
+Output:	79 0 0 0 0 0 0 0 0 0 0 0 
+Temp:	13 44 69 222 9 176 1 7 170 85 0 0 
+Job ID:	7
+Input:	11 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
+Output:	0 1 1 2 3 5 8 13 21 34 55 0 
 Temp:	0 0 0 0 0 0 0 0 0 0 0 0 
 Job ID:	8
 Input:	11 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
 Output:	0 1 2 3 5 8 13 21 34 55 89 0 
 Temp:	0 0 0 0 0 0 0 0 0 0 0 0 
-Job ID:	30
-Input:	10 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-Output:	0 1 2 3 5 8 13 21 34 55 0 0 
-Temp:	0 0 0 0 0 0 0 0 0 0 0 0 
-Job ID:	4
-Input:	11 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-Output:	0 1 2 3 5 8 13 21 34 55 89 0 
-Temp:	0 0 0 0 0 0 0 0 0 0 0 0 
-Job ID:	7
-Input:	11 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-Output:	0 1 1 2 3 5 8 13 21 34 55 0 
-Temp:	0 0 0 0 0 0 0 0 0 0 0 0 
-Job ID:	21
-Input:	12 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-Output:	0 1 2 3 5 8 13 21 34 55 89 144 
-Temp:	0 0 0 0 0 0 0 0 0 0 0 0 
-Job ID:	25
-Input:	5 6 44 69 1 7 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-Output:	127 0 0 0 0 0 0 0 0 0 0 0 
-Temp:	6 44 69 1 7 0 0 0 0 0 0 0 
-Job ID:	18
-Input:	10 6 44 69 1 9 176 1 7 170 85 0 0 0 0 0 0 0 0 0 
-Output:	56 0 0 0 0 0 0 0 0 0 0 0 
-Temp:	6 44 69 1 9 176 1 7 170 85 0 0 
-Job ID:	13
-Input:	10 6 44 69 1 9 176 1 7 170 85 0 0 0 0 0 0 0 0 0 
-Output:	56 0 0 0 0 0 0 0 0 0 0 0 
-Temp:	6 44 69 1 9 176 1 7 170 85 0 0 
-Job ID:	6
-Input:	10 13 44 69 222 9 176 1 7 170 85 0 0 0 0 0 0 0 0 0 
-Output:	79 0 0 0 0 0 0 0 0 0 0 0 
-Temp:	13 44 69 222 9 176 1 7 170 85 0 0 
-Job ID:	24
-Input:	10 6 44 69 1 9 176 1 7 170 85 0 0 0 0 0 0 0 0 0 
-Output:	56 0 0 0 0 0 0 0 0 0 0 0 
-Temp:	6 44 69 1 9 176 1 7 170 85 0 0 
-Job ID:	3
-Input:	10 6 44 69 1 9 176 1 7 170 85 0 0 0 0 0 0 0 0 0 
-Output:	56 0 0 0 0 0 0 0 0 0 0 0 
-Temp:	6 44 69 1 9 176 1 7 170 85 0 0 
-Job ID:	15
-Input:	9 6 44 69 1 9 176 1 7 170 0 0 0 0 0 0 0 0 0 0 
-Output:	53 0 0 0 0 0 0 0 0 0 0 0 
-Temp:	6 44 69 1 9 176 1 7 170 0 0 0 
-Job ID:	23
-Input:	9 6 44 69 1 7 0 1 5 10 0 0 0 0 0 0 0 0 0 0 
-Output:	143 0 0 0 0 0 0 0 0 0 0 0 
-Temp:	6 44 69 1 7 0 1 5 10 0 0 0 
 Job ID:	9
 Input:	10 6 44 69 1 9 176 1 7 170 85 0 0 0 0 0 0 0 0 0 
 Output:	56 0 0 0 0 0 0 0 0 0 0 0 
 Temp:	6 44 69 1 9 176 1 7 170 85 0 0 
-Job ID:	20
+Job ID:	10
+Input:	10 6 44 69 1 7 0 1 5 10 85 0 0 0 0 0 0 0 0 0 
+Output:	85 0 0 0 0 0 0 0 0 0 0 0 
+Temp:	6 44 69 1 7 0 1 5 10 85 0 0 
+Job ID:	11
+Input:	10 6 44 69 129 231 192 1 101 10 85 0 0 0 0 0 0 0 0 0 
+Output:	868 0 0 0 0 0 0 0 0 0 0 0 
+Temp:	6 44 69 129 231 192 1 101 10 85 0 0 
+Job ID:	12
+Input:	10 6 44 69 225 23 0 2 5 170 85 0 0 0 0 0 0 0 0 0 
+Output:	225 0 0 0 0 0 0 0 0 0 0 0 
+Temp:	6 44 69 225 23 0 2 5 170 85 0 0 
+Job ID:	13
+Input:	10 6 44 69 1 9 176 1 7 170 85 0 0 0 0 0 0 0 0 0 
+Output:	56 0 0 0 0 0 0 0 0 0 0 0 
+Temp:	6 44 69 1 9 176 1 7 170 85 0 0 
+Job ID:	14
+Input:	9 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
+Output:	0 1 2 3 5 8 13 21 34 0 0 0 
+Temp:	0 0 0 0 0 0 0 0 0 0 0 0 
+Job ID:	16
+Input:	4 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
+Output:	0 1 2 3 0 0 0 0 0 0 0 0 
+Temp:	0 0 0 0 0 0 0 0 0 0 0 0 
+Job ID:	15
+Input:	9 6 44 69 1 9 176 1 7 170 0 0 0 0 0 0 0 0 0 0 
+Output:	53 0 0 0 0 0 0 0 0 0 0 0 
+Temp:	6 44 69 1 9 176 1 7 170 0 0 0 
+Job ID:	17
+Input:	10 6 44 69 177 7 156 1 69 10 85 0 0 0 0 0 0 0 0 0 
+Output:	177 0 0 0 0 0 0 0 0 0 0 0 
+Temp:	6 44 69 177 7 156 1 69 10 85 0 0 
+Job ID:	18
 Input:	10 6 44 69 1 9 176 1 7 170 85 0 0 0 0 0 0 0 0 0 
 Output:	56 0 0 0 0 0 0 0 0 0 0 0 
 Temp:	6 44 69 1 9 176 1 7 170 85 0 0 
@@ -104,47 +104,47 @@ Job ID:	19
 Input:	8 6 44 69 1 7 0 1 5 0 0 0 0 0 0 0 0 0 0 0 
 Output:	69 0 0 0 0 0 0 0 0 0 0 0 
 Temp:	6 44 69 1 7 0 1 5 0 0 0 0 
-Job ID:	29
-Input:	10 6 44 69 1 9 176 17 231 170 85 0 0 0 0 0 0 0 0 0 
-Output:	80 0 0 0 0 0 0 0 0 0 0 0 
-Temp:	6 44 69 1 9 176 17 231 170 85 0 0 
-Job ID:	10
-Input:	10 6 44 69 1 7 0 1 5 10 85 0 0 0 0 0 0 0 0 0 
-Output:	85 0 0 0 0 0 0 0 0 0 0 0 
-Temp:	6 44 69 1 7 0 1 5 10 85 0 0 
+Job ID:	21
+Input:	12 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
+Output:	0 1 2 3 5 8 13 21 34 55 89 144 
+Temp:	0 0 0 0 0 0 0 0 0 0 0 0 
+Job ID:	20
+Input:	10 6 44 69 1 9 176 1 7 170 85 0 0 0 0 0 0 0 0 0 
+Output:	56 0 0 0 0 0 0 0 0 0 0 0 
+Temp:	6 44 69 1 9 176 1 7 170 85 0 0 
 Job ID:	22
 Input:	10 6 44 69 1 7 0 1 5 10 85 0 0 0 0 0 0 0 0 0 
 Output:	85 0 0 0 0 0 0 0 0 0 0 0 
 Temp:	6 44 69 1 7 0 1 5 10 85 0 0 
-Job ID:	12
-Input:	10 6 44 69 225 23 0 2 5 170 85 0 0 0 0 0 0 0 0 0 
-Output:	225 0 0 0 0 0 0 0 0 0 0 0 
-Temp:	6 44 69 225 23 0 2 5 170 85 0 0 
-Job ID:	2
-Input:	10 6 44 69 1 7 0 1 5 10 85 0 0 0 0 0 0 0 0 0 
-Output:	85 0 0 0 0 0 0 0 0 0 0 0 
-Temp:	6 44 69 1 7 0 1 5 10 85 0 0 
-Job ID:	17
-Input:	10 6 44 69 177 7 156 1 69 10 85 0 0 0 0 0 0 0 0 0 
-Output:	177 0 0 0 0 0 0 0 0 0 0 0 
-Temp:	6 44 69 177 7 156 1 69 10 85 0 0 
-Job ID:	5
-Input:	10 6 44 69 1 23 0 1 5 170 85 0 0 0 0 0 0 0 0 0 
-Output:	170 0 0 0 0 0 0 0 0 0 0 0 
-Temp:	6 44 69 1 23 0 1 5 170 85 0 0 
-Job ID:	11
-Input:	10 6 44 69 129 231 192 1 101 10 85 0 0 0 0 0 0 0 0 0 
-Output:	868 0 0 0 0 0 0 0 0 0 0 0 
-Temp:	6 44 69 129 231 192 1 101 10 85 0 0 
-Job ID:	28
-Input:	10 6 44 69 1 7 0 225 5 10 85 0 0 0 0 0 0 0 0 0 
-Output:	225 0 0 0 0 0 0 0 0 0 0 0 
-Temp:	6 44 69 1 7 0 225 5 10 85 0 0 
-Job ID:	1
-Input:	10 6 44 69 1 7 0 1 5 10 85 0 0 0 0 0 0 0 0 0 
-Output:	228 0 0 0 0 0 0 0 0 0 0 0 
-Temp:	6 44 69 1 7 0 1 5 10 85 0 0 
+Job ID:	23
+Input:	9 6 44 69 1 7 0 1 5 10 0 0 0 0 0 0 0 0 0 0 
+Output:	143 0 0 0 0 0 0 0 0 0 0 0 
+Temp:	6 44 69 1 7 0 1 5 10 0 0 0 
+Job ID:	24
+Input:	10 6 44 69 1 9 176 1 7 170 85 0 0 0 0 0 0 0 0 0 
+Output:	56 0 0 0 0 0 0 0 0 0 0 0 
+Temp:	6 44 69 1 9 176 1 7 170 85 0 0 
+Job ID:	25
+Input:	5 6 44 69 1 7 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
+Output:	127 0 0 0 0 0 0 0 0 0 0 0 
+Temp:	6 44 69 1 7 0 0 0 0 0 0 0 
+Job ID:	26
+Input:	7 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
+Output:	0 1 2 3 5 8 13 0 0 0 0 0 
+Temp:	0 0 0 0 0 0 0 0 0 0 0 0 
 Job ID:	27
 Input:	10 6 44 69 1 7 0 1 5 10 85 0 0 0 0 0 0 0 0 0 
 Output:	228 0 0 0 0 0 0 0 0 0 0 0 
 Temp:	6 44 69 1 7 0 1 5 10 85 0 0 
+Job ID:	28
+Input:	10 6 44 69 1 7 0 225 5 10 85 0 0 0 0 0 0 0 0 0 
+Output:	225 0 0 0 0 0 0 0 0 0 0 0 
+Temp:	6 44 69 1 7 0 225 5 10 85 0 0 
+Job ID:	29
+Input:	10 6 44 69 1 9 176 17 231 170 85 0 0 0 0 0 0 0 0 0 
+Output:	80 0 0 0 0 0 0 0 0 0 0 0 
+Temp:	6 44 69 1 9 176 17 231 170 85 0 0 
+Job ID:	30
+Input:	10 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
+Output:	0 1 2 3 5 8 13 21 34 55 0 0 
+Temp:	0 0 0 0 0 0 0 0 0 0 0 0 

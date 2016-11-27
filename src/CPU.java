@@ -11,7 +11,6 @@ public class CPU implements Runnable {
     public static final int PAGE_FAULT_DELAY = 100;    //delay for loading a page from disk to memory.
     public static final int DISK_ACCESS_DELAY = 100;   //delay for writing page back to disk.
 
-    int cpuId;
 
     class Cache {
         int[][] arr;
@@ -34,7 +33,6 @@ public class CPU implements Runnable {
             valid = new boolean[CACHE_SIZE];
         }
     }
-    Cache cache;
 
     class CacheResult {
         boolean valid;
@@ -45,16 +43,17 @@ public class CPU implements Runnable {
 
     int pageFaultNumber = 0;   //set by execute, in the event of a page fault.
 
+    int cpuId;
+    Cache cache;
+    PCB currJob;
 
     /////////////////////////////////////////////////////////////////////////////////
     //                  BEGIN variables set/preserved by context switcher
     /////////////////////////////////////////////////////////////////////////////////
-    PCB currPCB;
     int [] reg;             //16 registers.
                             //reg0 = Accumulator.
                             //reg1 = Zero register (0).
     int pc;                 //program counter.  (logical address)
-
     /////////////////////////////////////////////////////////////////////////////////
     //                  END variables set/preserved by context switcher
     /////////////////////////////////////////////////////////////////////////////////
@@ -69,27 +68,31 @@ public class CPU implements Runnable {
 
     public void run() {
 
-        int cpuShutdownCheck;
         Instruction currInstruction;
         CacheResult cacheResult;
         boolean pageFault;
+        long currTime;
 
         try {
             while (!Thread.currentThread().isInterrupted()) {
-
+                currJob = Queues.runningQueues[cpuId].take();
                 //this is how the Driver shuts down the CPU's after all jobs are processed.
-                cpuShutdownCheck = Queues.cpuActiveQueue[cpuId].take();
-                if (cpuShutdownCheck == -1) {
+                if (currJob.jobId == -1) {
                     return;
                 }
 
-                currPCB.status = PCB.state.RUNNING;
+                currJob.status = PCB.state.RUNNING;
+
+                if (currJob.firstRun) {
+                    currJob.firstRun = false;
+                    currJob.trackingInfo.runStartTime = System.currentTimeMillis();
+                }
 
                 /////////////////////////////////////////////////////////////////////////////////
                 //                  BEGIN  Fetch-Decode-Execute and pageFault detection
                 /////////////////////////////////////////////////////////////////////////////////
                 pageFault = false;
-                while ((!pageFault) && (pc < currPCB.codeSize)) {
+                while ((!pageFault) && (pc < currJob.codeSize)) {
                     cacheResult = fetchFromCache(pc);
                     if (cacheResult.valid) {
                         currInstruction = decode(cacheResult.data);
@@ -107,6 +110,8 @@ public class CPU implements Runnable {
                 //                  END  Fetch-Decode-Execute and pageFault detection
                 /////////////////////////////////////////////////////////////////////////////////
 
+
+
                 //if cache was modified, copy modified words from cache back into memory.
                 //(because the cache is going to be erased upon context switch)
                 if (cache.changed) {
@@ -116,17 +121,42 @@ public class CPU implements Runnable {
                     dmaThread.join();
                 }
 
-                ScheduleAndDispatch.save(this);
+                //save context information.
+                currJob.pc = pc;
+                System.arraycopy(reg, 0, currJob.registers, 0, currJob.registers.length);
 
-                if (pageFault) {
-                    Queues.pageRequestQueue.put(new PageRequest (currPCB, pageFaultNumber));
+
+
+                if (!pageFault) {
+                    //Job successfully completed - so free frames, add to DoneQueue, save output buffers.
+                    Queues.freeFrameRequestQueue.put(currJob);
+
+                    currJob.trackingInfo.buffers = outputResults();
+                    currJob.trackingInfo.runEndTime = System.currentTimeMillis();
+                    currJob.status = PCB.state.COMPLETE;
+
+                    Queues.doneQueue.add(currJob);
+                    if (Queues.doneQueue.size() == Driver.numJobs) {
+                        //*All* jobs are done - signal the scheduler it's time to stop.
+                        PCB shutDownRequest = new PCB(-1);    //create a dummy PCB to tell the scheduler to stop.
+                        Queues.readyQueue.put(shutDownRequest);
+                    }
+                }
+                else {
+                    //page fault - so put it on the waiting queue, for the PageManager.
+                    currJob.pageFaultFrame = pageFaultNumber;
+                    Queues.waitingQueue.put(currJob);
+                    currTime = System.currentTimeMillis();
+                    currJob.trackingInfo.startedWaitingAgainTime = currTime;
+                    currJob.trackingInfo.addStartTime(currTime);
+
+                    currJob.status = PCB.state.WAITING;
+
+                    //System.out.println("Ready Queue size: " + Queues.readyQueue.size());
+                    //System.out.println("Page Request Queue size:" + Queues.pageRequestQueue.size());
                 }
                 Queues.freeCpuQueue.put(cpuId);
 
-                //if (currPCB.goodFinish)
-                //    synchronized (Queues.waitForFinishLock) {      //notify Driver that CPU is done running a job.
-                //        Queues.waitForFinishLock.notify();
-                //}
             }
         } catch (InterruptedException ie) {
             System.err.println(ie.toString());
@@ -367,7 +397,7 @@ public class CPU implements Runnable {
 
             //case Instruction.JUMP:
             case Instruction.HLT: //Logical end of program
-                currPCB.goodFinish = true;
+                currJob.goodFinish = true;
                 break;
 
             case Instruction.JMP: //Jumps to a specified location
@@ -392,7 +422,7 @@ public class CPU implements Runnable {
     //fetch from the cache.
     public CacheResult fetchFromCache(int address) {
         //check that the logical code being fetched is inside the job's code section
-        if ((address >= 0) && (address < currPCB.codeSize)) {
+        if ((address >= 0) && (address < currJob.codeSize)) {
             CacheResult result = checkAndGetCacheAddress(address);
             if (result.valid) {
                 result.data = cache.arr[result.page][result.offset];
@@ -413,7 +443,7 @@ public class CPU implements Runnable {
         address = address/4;
 
         //check if logical address is in bounds of the current job's DATA section.
-        if ((address >= currPCB.codeSize) && (address < currPCB.getJobSizeInMemory())) {
+        if ((address >= currJob.codeSize) && (address < currJob.getJobSizeInMemory())) {
             CacheResult result = checkAndGetCacheAddress(address);
             if (result.valid) {
                 result.data = cache.arr[result.page][result.offset];
@@ -434,7 +464,7 @@ public class CPU implements Runnable {
         address = address/4;
 
         //check if logical address is in bounds of the current job's DATA section.
-        if ((address >= currPCB.codeSize) && (address < currPCB.getJobSizeInMemory())) {
+        if ((address >= currJob.codeSize) && (address < currJob.getJobSizeInMemory())) {
             CacheResult result = checkAndGetCacheAddress(address);
             if (result.valid) {
                 cache.arr[result.page][result.offset] = data;
@@ -454,20 +484,20 @@ public class CPU implements Runnable {
 
         StringBuilder results = new StringBuilder();
         results.append("Job ID:\t");
-        results.append(currPCB.jobId);
+        results.append(currJob.jobId);
         results.append("\r\nInput:\t");
-        for (int i = 0; i < currPCB.inputBufferSize; i++) {
-            results.append(readCache((currPCB.codeSize + i)*4).data);
+        for (int i = 0; i < currJob.inputBufferSize; i++) {
+            results.append(readCache((currJob.codeSize + i)*4).data);
             results.append(" ");
         }
         results.append("\r\nOutput:\t");
-        for (int i = 0; i < currPCB.outputBufferSize; i++) {
-            results.append(readCache((currPCB.codeSize + currPCB.inputBufferSize + i)*4).data);
+        for (int i = 0; i < currJob.outputBufferSize; i++) {
+            results.append(readCache((currJob.codeSize + currJob.inputBufferSize + i)*4).data);
             results.append(" ");
         }
         results.append("\r\nTemp:\t");
-        for (int i = 0; i < currPCB.tempBufferSize; i++) {
-            results.append(readCache((currPCB.codeSize + currPCB.inputBufferSize + currPCB.outputBufferSize + i)*4).data);
+        for (int i = 0; i < currJob.tempBufferSize; i++) {
+            results.append(readCache((currJob.codeSize + currJob.inputBufferSize + currJob.outputBufferSize + i)*4).data);
             results.append(" ");
         }
         results.append("\r\n");
@@ -550,7 +580,6 @@ public class CPU implements Runnable {
         public DMA() {}
 
         public void handleDMA() {
-
             try {
                 int currPage;
                 int currIOcount = 0;
@@ -558,11 +587,11 @@ public class CPU implements Runnable {
                     if (cache.valid[i]) {
                         for (int j=0; j <4; j++) {
                             if (cache.modified[i][j]) {
-                                currPage = currPCB.memories.pageTable[i][0];
+                                currPage = currJob.memories.pageTable[i][PCB.PAGE_NUM];
                                 MemorySystem.memory.writeMemoryAddress(currPage, j, cache.arr[i][j]);
-                                currPCB.trackingInfo.ioCounter++;       //update *total* IO count.
+                                currJob.trackingInfo.ioCounter++;       //update *total* IO count.
                                 currIOcount++;
-                                currPCB.memories.pageTable[i][2] = 1;   //set pagetable "dirty" indicator; must be written back to disk.
+                                currJob.memories.pageTable[i][PCB.MODIFIED] = 1;   //set pagetable "dirty" indicator; must be written back to disk.
                             }
                         }
                     }
@@ -572,9 +601,6 @@ public class CPU implements Runnable {
             catch (InterruptedException ie) {
                 System.err.println("Invalid DMA handler interruption: " + ie.toString());
             }
-
         }
     }
-
-
 }

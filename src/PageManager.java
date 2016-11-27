@@ -4,110 +4,50 @@ public class PageManager implements Runnable {
 
     public void run () {
 
-        PageRequest pageRequest;
-        int shutdownCheck;
-
-        int jobFrame;
+        PCB currJob;
         int diskCounter;
-
         int freeFrame;
+        long currTime;
 
         try {
             while (!Thread.currentThread().isInterrupted()) {
-                pageRequest = Queues.pageRequestQueue.take();
+
+                currJob = Queues.waitingQueue.take();
 
                 //this is how the Driver shuts down the PageManager after all jobs are processed.
-                shutdownCheck = pageRequest.pageNumber;
-                if (shutdownCheck == -1) {
+                if (currJob.jobId == -1) {
+                    synchronized (Queues.PageManagerShutDownLock) {
+                        Queues.PageManagerShutDownLock.notify();  //let the driver know PageManager is done.
+                    }
                     return;
                 }
 
                 //get a free frame of memory.
-                //synchronized (Queues.frameListLock) {
-                //    freeFrame = MemorySystem.memory.freeFramesList.pop();
-                //}
                 freeFrame = MemorySystem.memory.freeFrameList.take();
 
+                currJob.trackingInfo.currStartFaultServiceTime = System.currentTimeMillis();
 
-                diskCounter = pageRequest.jobPCB.memories.disk_base_register;
-                jobFrame = pageRequest.pageNumber;
-
+                diskCounter = currJob.memories.disk_base_register;
                 //copy the desired page from the disk to memory.
-                System.arraycopy(MemorySystem.disk.diskArray[diskCounter+jobFrame], 0, MemorySystem.memory.memArray[freeFrame], 0, 4);
+                System.arraycopy(MemorySystem.disk.diskArray[diskCounter + currJob.pageFaultFrame], 0, MemorySystem.memory.memArray[freeFrame], 0, 4);
                 TimeUnit.NANOSECONDS.sleep(CPU.PAGE_FAULT_DELAY);  //delay to simulate disk access.
 
-                pageRequest.jobPCB.memories.pageTable[jobFrame][0] = freeFrame;      //update page table
-                pageRequest.jobPCB.memories.pageTable[jobFrame][1] = 1;               //set to valid.
+                currJob.memories.pageTable[currJob.pageFaultFrame][PCB.PAGE_NUM] = freeFrame;      //update page table
+                currJob.memories.pageTable[currJob.pageFaultFrame][PCB.VALID] = 1;               //set to valid.
 
                 //now that the page has been loaded into memory,
                 //move the job out of the waitingQueue, and to the top of the readyQueue.
-                synchronized (Queues.queueLock) {
-                    Queues.waitingQueue.remove(pageRequest.jobPCB);
+                Queues.readyQueue.put(currJob);
 
-                    if (Queues.readyQueue.isEmpty()) {
-                        Queues.readyQueue.addFirst(pageRequest.jobPCB);
-                        synchronized (Queues.waitForPageManagerLock) {      //notify Scheduler that job it was waiting for, is now available on the readyQueue.
-                            Queues.waitForPageManagerLock.notify();
-                        }
-                    }
-                    else {
-                        //insert the job into the readyQueue, depending on the scheduling algorithm.
-                        boolean inserted = false;
-                        int insertIndex = 0;
-
-                        switch (Driver.policy) {
-                            case Driver.PRIORITY:
-                                //insert job into proper position in readyQueue.
-                                for (PCB thisPCB : Queues.readyQueue) {
-                                    if (pageRequest.jobPCB.priority > thisPCB.priority) {
-                                        Queues.readyQueue.add(insertIndex, pageRequest.jobPCB);
-                                        inserted = true;
-                                        break;
-                                    }
-                                    else
-                                        insertIndex++;
-                                }
-                                if (!inserted) {
-                                    Queues.readyQueue.addLast(pageRequest.jobPCB);
-                                }
-                                break;
-                            case Driver.SJF:
-                                //insert job into proper position in readyQueue.
-                                for (PCB thisPCB : Queues.readyQueue) {
-                                    if (pageRequest.jobPCB.getJobSizeInMemory() < thisPCB.getJobSizeInMemory()) {
-                                        Queues.readyQueue.add(insertIndex, pageRequest.jobPCB);
-                                        inserted = true;
-                                        break;
-                                    }
-                                    else
-                                        insertIndex++;
-                                }
-                                if (!inserted) {
-                                    Queues.readyQueue.addLast(pageRequest.jobPCB);
-                                }
-                                break;
-                            default:  //FIFO
-                                //insert job into proper position in readyQueue.
-                                for (PCB thisPCB : Queues.readyQueue) {
-                                    if (pageRequest.jobPCB.order < thisPCB.order) {
-                                        Queues.readyQueue.add(insertIndex, pageRequest.jobPCB);
-                                        inserted = true;
-                                        break;
-                                    }
-                                    else
-                                        insertIndex++;
-                                }
-                                if (!inserted) {
-                                    Queues.readyQueue.addLast(pageRequest.jobPCB);
-                                }
-                                break;
-                        }
-                    }
-
-                }
+                currJob.trackingInfo.pageFaults++;
+                currTime = System.currentTimeMillis();
+                currJob.trackingInfo.totalFaultServiceTime += (currTime -
+                        currJob.trackingInfo.currStartFaultServiceTime);
+                currJob.trackingInfo.totalTimeOnWaitingQueue += (currTime -
+                        currJob.trackingInfo.startedWaitingAgainTime);
+                currJob.trackingInfo.addStopTime(currTime);
             }
         }
-
         catch (InterruptedException ie) {
             System.err.println(ie.toString());
         }

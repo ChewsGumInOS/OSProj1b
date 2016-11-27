@@ -1,7 +1,12 @@
+import java.util.LinkedList;
+
 //Process Control Block
 public class PCB {
 
     public static final int TABLE_SIZE = 20;
+    public static final int PAGE_NUM = 0;
+    public static final int VALID = 1;
+    public static final int MODIFIED = 2;
 
     int order;  //used by FIFO - tracks who came in first.
 
@@ -19,8 +24,9 @@ public class PCB {
     int [] registers;
 
     boolean goodFinish;
+    boolean firstRun = true;
+    int pageFaultFrame;     //frame that pageManager needs to load.
 
-    //int cpuId;
 
     Memories memories;
     TrackingInfo trackingInfo;
@@ -34,6 +40,11 @@ public class PCB {
         registers = new int [CPU.NUM_REGISTERS];
         trackingInfo = new TrackingInfo();
     }
+
+    public PCB(int jobId) { //used to quickly construct a dummy PCB with a jobId of -1.
+        this.jobId = jobId;
+    }
+
 
     public String toString() {
         String record = "jobID: " + jobId + ".\t "
@@ -71,20 +82,45 @@ class TrackingInfo {
     volatile int ioCounter;                  //number of io operations each process made
     String buffers;                 //at job completion, output buffers written to this String.
 
+    int pageFaults;
+
+
     long waitStartTime;             //time entered Ready Queue (set by Long Term Scheduler)
-    long runStartTime;              //time first started executing (entered Running Queue, set by Dispatcher)
+    long runStartTime;              //runStartTime  - time first started executing (set by CPU)
     long runEndTime;                //Completion Time = runEndTime - waitStartTime?
 
+    long currStartFaultServiceTime;
+    long totalFaultServiceTime;  //sum of currStartFaultServiceTime - currEndFaultServiceTime
 
-    //Execution Time: runEndTime - runStartTime?
-    /*
-    //below fields necessary for context-switching - each time we go from Running->Ready->Running etc, we
-    //need to track the times.
-    long startedWaitingAgainTime;   //time entered Ready Queue again
-    long startedRunningAgainTime;   //time starting Executing again
+    //waiting again?
+    long startedWaitingAgainTime;   //time entered Waiting Queue.
+    long totalTimeOnWaitingQueue;   //+= System.time() time exited Waiting Queue -startedWaitingAgainTime
+    //Execution Time: runEndTime - runStartTime - timesWaiting?
 
-    long totalTimeWaiting;          //sum of the periods spent waiting in the ready queue
-                                    //(timeWaitingInReadyQueue += startingRunningAgainTime - startedWaitingAgainTime)
-    */
+    LinkedList<WaitTimes> waitTimes;
 
+    public TrackingInfo() {
+        waitTimes = new LinkedList<>();
+    }
+
+    public void addStartTime(long start) {
+        waitTimes.add(new WaitTimes(start));
+    }
+
+    public void addStopTime(long stop) {
+        waitTimes.getLast().stop = stop;
+        waitTimes.getLast().diff = stop - waitTimes.getLast().start;
+    }
+
+    class WaitTimes {
+        long start;
+        long stop;
+        long diff;
+
+        WaitTimes(long start) {
+            this.start = start;
+        }
+    }
 }
+
+

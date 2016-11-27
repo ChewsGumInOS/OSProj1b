@@ -6,7 +6,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class MemorySystem {
 
     //public final int FRAME_SIZE = 4;
-
     static public DiskClass disk;
     static public MemoryClass memory;
 
@@ -14,14 +13,12 @@ public class MemorySystem {
         disk = new DiskClass();
         memory = new MemoryClass();
     }
-
 }
 
 //disk: 2048 words.  1 word = 4 bytes (or 8 hex characters).
 class DiskClass {
 
     public static final int DISK_SIZE = 512;
-
     int[][] diskArray;
 
     public DiskClass() {
@@ -39,7 +36,6 @@ class DiskClass {
         int offset = address%4;
         return diskArray[frameNumber][offset];
     }
-
 }
 
 //memory: 1024 words.  1 word = 4 bytes (or 8 hex characters).
@@ -48,17 +44,14 @@ class MemoryClass {
 
     int[][] memArray;
 
-    //LinkedList<Integer> freeFramesList;
     LinkedBlockingQueue<Integer> freeFrameList;
     //List freeFramesList = Collections.synchronizedList(new LinkedList<Integer>());
 
     public MemoryClass() {
         memArray = new int [MEM_SIZE][4];
         freeFrameList = new LinkedBlockingQueue<>();
-        //freeFramesList = new LinkedList();
         try {
             for (int i = 0; i < MEM_SIZE; i++) {
-                //freeFramesList.add(i);
                 freeFrameList.put(i);
             }
         }
@@ -84,11 +77,5 @@ class MemoryClass {
         else
             return (memArray[frame][offset]);
     }
-
-
-    //public boolean checkAddressInBounds(int memLoc) {
-    //    return !((memLoc < 0 ) || (memLoc > MEM_SIZE - 1));
-    //}
-
 }
 
