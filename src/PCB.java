@@ -1,12 +1,16 @@
-import java.util.LinkedList;
-
 //Process Control Block
 public class PCB {
 
-    public static final int TABLE_SIZE = 20;
+    public static final int LARGEST_JOB_SIZE = 80;
+
+    //set the page table size; make sure it can fit the LARGEST_JOB_SIZE.
+    public static final int TABLE_SIZE = (LARGEST_JOB_SIZE%MemorySystem.PAGE_SIZE == 0 ?
+            LARGEST_JOB_SIZE / MemorySystem.PAGE_SIZE : LARGEST_JOB_SIZE / MemorySystem.PAGE_SIZE + 1);
+
     public static final int PAGE_NUM = 0;
     public static final int VALID = 1;
     public static final int MODIFIED = 2;
+
 
     int order;  //used by FIFO - tracks who came in first.
 
@@ -20,13 +24,14 @@ public class PCB {
     int outputBufferSize;
     int tempBufferSize;
 
+    int jobSizeInMemory;  //to speed things up. codeSize + inputBufferSize + outputBufferSize + tempBufferSize
+
     int pc;     // the job’s pc holds the address of the instruction to fetch
     int [] registers;
 
     boolean goodFinish;
-    boolean firstRun = true;
     int pageFaultFrame;     //frame that pageManager needs to load.
-
+    int cpuId;
 
     Memories memories;
     TrackingInfo trackingInfo;
@@ -56,11 +61,6 @@ public class PCB {
                 + "pc:" + pc + ".\t";
         return record;
     }
-
-    public int getJobSizeInMemory() {
-        return codeSize + inputBufferSize + outputBufferSize + tempBufferSize;
-    }
-
 }
 
 class Memories {
@@ -84,19 +84,22 @@ class TrackingInfo {
 
     int pageFaults;
 
+    long execStartTime;
+    long execTotalTime;
 
-    long waitStartTime;             //time entered Ready Queue (set by Long Term Scheduler)
-    long runStartTime;              //runStartTime  - time first started executing (set by CPU)
-    long runEndTime;                //Completion Time = runEndTime - waitStartTime?
+    long ioStartTime;
+    long ioTotalTime;
+
+    long waitStart;
+    long totalWait;
 
     long currStartFaultServiceTime;
-    long totalFaultServiceTime;  //sum of currStartFaultServiceTime - currEndFaultServiceTime
+    long totalFaultServiceTime;
 
-    //waiting again?
-    long startedWaitingAgainTime;   //time entered Waiting Queue.
-    long totalTimeOnWaitingQueue;   //+= System.time() time exited Waiting Queue -startedWaitingAgainTime
-    //Execution Time: runEndTime - runStartTime - timesWaiting?
+    long firstEnteredReadyQueue;
+    long completionTime;
 
+    /*
     LinkedList<WaitTimes> waitTimes;
 
     public TrackingInfo() {
@@ -121,6 +124,7 @@ class TrackingInfo {
             this.start = start;
         }
     }
+    */
 }
 
 

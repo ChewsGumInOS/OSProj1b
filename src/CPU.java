@@ -4,8 +4,8 @@ import java.util.concurrent.TimeUnit;
 public class CPU implements Runnable {
 
     public static final int NUM_REGISTERS = 16;
-    public static final int CACHE_SIZE = PCB.TABLE_SIZE; //=20; code is simplified by having the cache mirror page table.
-    public static final int CPU_COUNT = 4;
+    public static final int CACHE_SIZE = PCB.TABLE_SIZE; //code is simplified by having the cache mirror page table.
+    public static final int CPU_COUNT = 8;
 
     public static final int DMA_DELAY = 10;            //delay DMA by X nanoseconds to simulate IO to/from RAM.
     public static final int PAGE_FAULT_DELAY = 100;    //delay for loading a page from disk to memory.
@@ -28,8 +28,8 @@ public class CPU implements Runnable {
         }
 
         public Cache() {
-            arr = new int[CACHE_SIZE][4];
-            modified = new boolean[CACHE_SIZE][4];
+            arr = new int[CACHE_SIZE][MemorySystem.PAGE_SIZE];
+            modified = new boolean[CACHE_SIZE][MemorySystem.PAGE_SIZE];
             valid = new boolean[CACHE_SIZE];
         }
     }
@@ -83,10 +83,9 @@ public class CPU implements Runnable {
 
                 currJob.status = PCB.state.RUNNING;
 
-                if (currJob.firstRun) {
-                    currJob.firstRun = false;
-                    currJob.trackingInfo.runStartTime = System.currentTimeMillis();
-                }
+                currTime = System.currentTimeMillis();
+                currJob.trackingInfo.execStartTime = currTime;
+                currJob.trackingInfo.totalWait += currTime - currJob.trackingInfo.waitStart;
 
                 /////////////////////////////////////////////////////////////////////////////////
                 //                  BEGIN  Fetch-Decode-Execute and pageFault detection
@@ -103,36 +102,39 @@ public class CPU implements Runnable {
                     }
                     else {                      //page fault from accessing next line of code.
                         pageFault = true;
-                        pageFaultNumber = pc/4;
+                        pageFaultNumber = pc/MemorySystem.PAGE_SIZE;
                     }
                 }
                 /////////////////////////////////////////////////////////////////////////////////
                 //                  END  Fetch-Decode-Execute and pageFault detection
                 /////////////////////////////////////////////////////////////////////////////////
 
+                currTime = System.currentTimeMillis();
+                currJob.trackingInfo.execTotalTime += currTime - currJob.trackingInfo.execStartTime;
 
-
-                //if cache was modified, copy modified words from cache back into memory.
-                //(because the cache is going to be erased upon context switch)
-                if (cache.changed) {
-                    DMA dma = new DMA();
-                    Thread dmaThread = new Thread(dma);
-                    dmaThread.start();
-                    dmaThread.join();
-                }
 
                 //save context information.
                 currJob.pc = pc;
                 System.arraycopy(reg, 0, currJob.registers, 0, currJob.registers.length);
 
+                //if cache was modified, copy modified words from cache back into memory.
+                //(because the cache is going to be erased upon context switch)
+                if (cache.changed) {
+                    currJob.trackingInfo.ioStartTime = currTime;
 
+                    Queues.ioWaitQueue.put(currJob);
+                    Queues.ioDoneQueue[cpuId].take();  //memory *must* be written before we continue; wait for the signal.
+
+                    currJob.trackingInfo.ioTotalTime += System.currentTimeMillis() - currJob.trackingInfo.ioStartTime;
+                }
 
                 if (!pageFault) {
                     //Job successfully completed - so free frames, add to DoneQueue, save output buffers.
+                    currJob.trackingInfo.completionTime = System.currentTimeMillis() - currJob.trackingInfo.firstEnteredReadyQueue;
+
                     Queues.freeFrameRequestQueue.put(currJob);
 
                     currJob.trackingInfo.buffers = outputResults();
-                    currJob.trackingInfo.runEndTime = System.currentTimeMillis();
                     currJob.status = PCB.state.COMPLETE;
 
                     Queues.doneQueue.add(currJob);
@@ -141,14 +143,15 @@ public class CPU implements Runnable {
                         PCB shutDownRequest = new PCB(-1);    //create a dummy PCB to tell the scheduler to stop.
                         Queues.readyQueue.put(shutDownRequest);
                     }
+
+
                 }
                 else {
                     //page fault - so put it on the waiting queue, for the PageManager.
+                    currJob.trackingInfo.waitStart = System.currentTimeMillis();
+
                     currJob.pageFaultFrame = pageFaultNumber;
                     Queues.waitingQueue.put(currJob);
-                    currTime = System.currentTimeMillis();
-                    currJob.trackingInfo.startedWaitingAgainTime = currTime;
-                    currJob.trackingInfo.addStartTime(currTime);
 
                     currJob.status = PCB.state.WAITING;
 
@@ -413,8 +416,8 @@ public class CPU implements Runnable {
 
     public CacheResult checkAndGetCacheAddress(int address) {
         CacheResult result = new CacheResult();
-        result.page = address / 4;
-        result.offset = address % 4;
+        result.page = address / MemorySystem.PAGE_SIZE;
+        result.offset = address % MemorySystem.PAGE_SIZE;
         result.valid = cache.valid[result.page];
         return result;
     }
@@ -443,7 +446,7 @@ public class CPU implements Runnable {
         address = address/4;
 
         //check if logical address is in bounds of the current job's DATA section.
-        if ((address >= currJob.codeSize) && (address < currJob.getJobSizeInMemory())) {
+        if ((address >= currJob.codeSize) && (address < currJob.jobSizeInMemory)) {
             CacheResult result = checkAndGetCacheAddress(address);
             if (result.valid) {
                 result.data = cache.arr[result.page][result.offset];
@@ -464,7 +467,7 @@ public class CPU implements Runnable {
         address = address/4;
 
         //check if logical address is in bounds of the current job's DATA section.
-        if ((address >= currJob.codeSize) && (address < currJob.getJobSizeInMemory())) {
+        if ((address >= currJob.codeSize) && (address < currJob.jobSizeInMemory)) {
             CacheResult result = checkAndGetCacheAddress(address);
             if (result.valid) {
                 cache.arr[result.page][result.offset] = data;
@@ -569,38 +572,4 @@ public class CPU implements Runnable {
     }
 
 */
-
-    //separate thread to handle DMA transfer
-    class DMA implements Runnable {
-
-        public void run() {
-            handleDMA();
-        }
-
-        public DMA() {}
-
-        public void handleDMA() {
-            try {
-                int currPage;
-                int currIOcount = 0;
-                for (int i = 0; i < CACHE_SIZE; i++) {
-                    if (cache.valid[i]) {
-                        for (int j=0; j <4; j++) {
-                            if (cache.modified[i][j]) {
-                                currPage = currJob.memories.pageTable[i][PCB.PAGE_NUM];
-                                MemorySystem.memory.writeMemoryAddress(currPage, j, cache.arr[i][j]);
-                                currJob.trackingInfo.ioCounter++;       //update *total* IO count.
-                                currIOcount++;
-                                currJob.memories.pageTable[i][PCB.MODIFIED] = 1;   //set pagetable "dirty" indicator; must be written back to disk.
-                            }
-                        }
-                    }
-                }
-                TimeUnit.NANOSECONDS.sleep(DMA_DELAY*currIOcount);
-            }
-            catch (InterruptedException ie) {
-                System.err.println("Invalid DMA handler interruption: " + ie.toString());
-            }
-        }
-    }
 }

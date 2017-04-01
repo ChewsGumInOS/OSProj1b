@@ -4,7 +4,7 @@ public class ScheduleAndDispatch {
     //grab a job from the ready queue.
     //grab a free CPU from the free CPU queue.
     //context switch
-    //assign the job to the CPU's running queue.
+    //place the job on the CPU's running queue.
 
     public static boolean scheduleAndDispatch () {
         try {
@@ -17,11 +17,12 @@ public class ScheduleAndDispatch {
             //wait for a free CPU, then dispatch it to do stuff.
             Integer currFreeCPU = Queues.freeCpuQueue.take();
             CPU cpu = Driver.cpu[currFreeCPU];
-
+            currJob.cpuId = cpu.cpuId;  //record which CPU is being assigned the job in the PCB.
 
             /////////////////////////////////////////////////////////////////////////////////
             //                        Begin Loading CPU with job context info
             /////////////////////////////////////////////////////////////////////////////////
+
             cpu.pc = currJob.pc;
             System.arraycopy(currJob.registers, 0, cpu.reg, 0, currJob.registers.length);
 
@@ -31,7 +32,7 @@ public class ScheduleAndDispatch {
             for (int i = 0; i < PCB.TABLE_SIZE; i++) {
                 if (currJob.memories.pageTable[i][PCB.VALID] == 1) {
                     currPage = currJob.memories.pageTable[i][PCB.PAGE_NUM];
-                    System.arraycopy(MemorySystem.memory.memArray[currPage], 0, cpu.cache.arr[i], 0, 4);
+                    System.arraycopy(MemorySystem.memory.memArray[currPage], 0, cpu.cache.arr[i], 0, MemorySystem.PAGE_SIZE);
                     cpu.cache.valid[i] = true;
                 }
             }

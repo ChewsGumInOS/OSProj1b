@@ -5,29 +5,28 @@ public class TimingData {
     int iterations;
     int numJobs;
 
-    static final int FACTOR = 1;  //data is in ms already
+    //static final int FACTOR = 1;  //FACTOR is used if we wanted to convert data to nanoseconds, etc
     static final String FACTOR_STRING = "Data is in milliseconds (ms)";
 
-    static final String TITLE_STRING = "Job#,NumPageFaults,AvgWaitTime,AvgCompletionTime,FirstWait,2ndWait,FaultServiceTotal,";
+    static final String TITLE_STRING = "Job#,NumPageFaults,AvgWaitTime,AvgCompletionTime,AvgExecutionTime,IOTime,FaultServiceTotal,";
 
-    static final int NUM_FIELDS = 8;    //4 columns: jobId, number of page faults, Waiting Time, Completion Time, WaitStart
+    static final int NUM_FIELDS = 7;
 
     static final int JOBID = 0;
     static final int NUM_FAULTS = 1;
     static final int WAITING_TIME = 2;
     static final int COMPLETION_TIME = 3;
-    static final int FIRST_WAIT = 4;
-    static final int SECOND_WAIT = 5;
+    static final int EXECUTION_TIME = 4;
+    static final int IO_TIME = 5;
     static final int FAULT_SERVICE = 6;
 
     long[][][] timingArray;
-    long[][] avgTimingArray;   //just Waiting Time(avg) and Completion Time(avg)
+    long[][] avgTimingArray;
 
 
     public TimingData (int iterations, int numJobs) {
         this.iterations = iterations;
         this.numJobs = numJobs;
-        //create timing array (if not already created)
         timingArray = new long[iterations][numJobs][NUM_FIELDS];
         avgTimingArray = new long [numJobs][NUM_FIELDS];
     }
@@ -37,18 +36,13 @@ public class TimingData {
         int j=0; //j = job counter
         for (PCB thisPCB: Queues.doneQueue) {
             //i=iteration counter
-            //waitStartTime - time entered Ready Queue (set by Long Term Scheduler)
-            //runStartTime  - time first started executing (set by CPU)
-            //runEndTime    - Completion Time = runEndTime - waitStartTime?
             timingArray[i][j][JOBID] = thisPCB.jobId;
             timingArray[i][j][NUM_FAULTS] = thisPCB.trackingInfo.pageFaults;
-            timingArray[i][j][WAITING_TIME] = Math.round((thisPCB.trackingInfo.runStartTime - thisPCB.trackingInfo.waitStartTime
-                    + thisPCB.trackingInfo.totalTimeOnWaitingQueue) / (double) FACTOR);
-            timingArray[i][j][COMPLETION_TIME] = Math.round((thisPCB.trackingInfo.runEndTime -
-                    thisPCB.trackingInfo.waitStartTime) / (double) FACTOR);
-            timingArray[i][j][FIRST_WAIT] = Math.round((thisPCB.trackingInfo.runStartTime - thisPCB.trackingInfo.waitStartTime) / (double) FACTOR);
-            timingArray[i][j][SECOND_WAIT] = Math.round(thisPCB.trackingInfo.waitTimes.get(0).diff / (double) FACTOR);
-            timingArray[i][j][FAULT_SERVICE] = Math.round((thisPCB.trackingInfo.totalFaultServiceTime) / (double) FACTOR);
+            timingArray[i][j][WAITING_TIME] = Math.round(thisPCB.trackingInfo.totalWait);
+            timingArray[i][j][COMPLETION_TIME] = Math.round(thisPCB.trackingInfo.completionTime);
+            timingArray[i][j][EXECUTION_TIME] = Math.round(thisPCB.trackingInfo.execTotalTime);
+            timingArray[i][j][IO_TIME] = Math.round(thisPCB.trackingInfo.ioTotalTime);
+            timingArray[i][j][FAULT_SERVICE] = Math.round(thisPCB.trackingInfo.totalFaultServiceTime);
             j++;
         }
     }
@@ -68,8 +62,8 @@ public class TimingData {
                     avgTimingArray[i][NUM_FAULTS] += timingArray[j][i][NUM_FAULTS];   //sum page faults times
                     avgTimingArray[i][WAITING_TIME] += timingArray[j][i][WAITING_TIME];   //sum wait times
                     avgTimingArray[i][COMPLETION_TIME] += timingArray[j][i][COMPLETION_TIME];   //sum completion times
-                    avgTimingArray[i][FIRST_WAIT] += timingArray[j][i][FIRST_WAIT];   //first wait
-                    avgTimingArray[i][SECOND_WAIT] += timingArray[j][i][SECOND_WAIT];   //second wait
+                    avgTimingArray[i][EXECUTION_TIME] += timingArray[j][i][EXECUTION_TIME];   //sum completion times
+                    avgTimingArray[i][IO_TIME] += timingArray[j][i][IO_TIME];   //sum completion times
                     avgTimingArray[i][FAULT_SERVICE] += timingArray[j][i][FAULT_SERVICE];   //fault service time
                 }
 
@@ -85,11 +79,11 @@ public class TimingData {
                 avgTimingArray[i][COMPLETION_TIME] = Math.round((double) avgTimingArray[i][COMPLETION_TIME] / (double) iterations);  //take avg of completion times across the iterations
                 timing.print(avgTimingArray[i][COMPLETION_TIME] + ",");
 
-                avgTimingArray[i][FIRST_WAIT] = Math.round((double) avgTimingArray[i][FIRST_WAIT] / (double) iterations);  //take avg of first wait times across iterations
-                timing.print(avgTimingArray[i][FIRST_WAIT] + ",");
+                avgTimingArray[i][EXECUTION_TIME] = Math.round((double) avgTimingArray[i][EXECUTION_TIME] / (double) iterations);  //take avg of completion times across the iterations
+                timing.print(avgTimingArray[i][EXECUTION_TIME] + ",");
 
-                avgTimingArray[i][SECOND_WAIT] = Math.round((double) avgTimingArray[i][SECOND_WAIT] / (double) iterations);
-                timing.print(avgTimingArray[i][SECOND_WAIT] + ",");
+                avgTimingArray[i][IO_TIME] = Math.round((double) avgTimingArray[i][IO_TIME] / (double) iterations);  //take avg of completion times across the iterations
+                timing.print(avgTimingArray[i][IO_TIME] + ",");
 
                 avgTimingArray[i][FAULT_SERVICE] = Math.round((double) avgTimingArray[i][FAULT_SERVICE] / (double) iterations);
                 timing.print(avgTimingArray[i][FAULT_SERVICE] + ",");
@@ -98,23 +92,31 @@ public class TimingData {
             }
 
             //finally calculate avg Wait Time, Completion Time across all jobs.
-            timing.println("NumFaults, AvgWaitTime, AvgCompletionTimeAvg, For All Jobs After running " + iterations + " iterations:");
-
             double avgNumFaults = 0;
             double avgWaitTime = 0;
             double avgCompletionTime = 0;
-            //double avgNumTimesInWaitingQueue = 0;
+            double avgIOWaitTime = 0;
+            double avgFaultServiceTime = 0;
 
             for (int i = 0; i < numJobs; i++) {
                 avgNumFaults+= avgTimingArray[i][NUM_FAULTS];
                 avgWaitTime += avgTimingArray[i][WAITING_TIME];
                 avgCompletionTime += avgTimingArray[i][COMPLETION_TIME];
+                avgIOWaitTime += avgTimingArray[i][IO_TIME];
+                avgFaultServiceTime += avgTimingArray[i][FAULT_SERVICE];
 
             }
             avgNumFaults = avgNumFaults / (double) numJobs;
             avgWaitTime = avgWaitTime / (double) numJobs;
             avgCompletionTime = avgCompletionTime / (double) numJobs;
-            timing.println(avgNumFaults + "  ," + Math.round(avgWaitTime) + "," + Math.round(avgCompletionTime) + ",");
+            avgIOWaitTime = avgIOWaitTime / (double) numJobs;
+            avgFaultServiceTime = avgFaultServiceTime / (double) numJobs;
+
+            timing.println();
+            timing.println("For All Jobs After running " + iterations + " iterations:");
+            timing.println(",,#Faults, AvgWait, AvgCompletion, AvgIOWait, AvgFaultService");
+            timing.println(",," + avgNumFaults + "," + Math.round(avgWaitTime) + "," + Math.round(avgCompletionTime) +
+                    "," + avgIOWaitTime + "," + avgFaultServiceTime + ",");
             timing.close();
 
         }

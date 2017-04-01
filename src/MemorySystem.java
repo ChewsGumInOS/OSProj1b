@@ -5,7 +5,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class MemorySystem {
 
-    //public final int FRAME_SIZE = 4;
+    static public final int PAGE_SIZE = 4;
+
     static public DiskClass disk;
     static public MemoryClass memory;
 
@@ -18,29 +19,29 @@ public class MemorySystem {
 //disk: 2048 words.  1 word = 4 bytes (or 8 hex characters).
 class DiskClass {
 
-    public static final int DISK_SIZE = 512;
+    public static final int DISK_SIZE = 2048/MemorySystem.PAGE_SIZE;
     int[][] diskArray;
 
     public DiskClass() {
-        diskArray = new int[DISK_SIZE][4];
+        diskArray = new int[DISK_SIZE][MemorySystem.PAGE_SIZE];
     }
 
     public void writeDisk(int diskCounter, String line) {
         int hexInt = Long.decode(line).intValue();
-        diskArray[diskCounter/4][diskCounter%4] = hexInt;
+        diskArray[diskCounter/MemorySystem.PAGE_SIZE][diskCounter%MemorySystem.PAGE_SIZE] = hexInt;
     }
 
     //returns a line of code from the disk (as an int)
     public int readDisk(int address) {
-        int frameNumber = address/4;
-        int offset = address%4;
+        int frameNumber = address/MemorySystem.PAGE_SIZE;
+        int offset = address%MemorySystem.PAGE_SIZE;
         return diskArray[frameNumber][offset];
     }
 }
 
 //memory: 1024 words.  1 word = 4 bytes (or 8 hex characters).
 class MemoryClass {
-    public static final int MEM_SIZE = 256;
+    public static final int MEM_SIZE = 1024/MemorySystem.PAGE_SIZE;
 
     int[][] memArray;
 
@@ -48,7 +49,7 @@ class MemoryClass {
     //List freeFramesList = Collections.synchronizedList(new LinkedList<Integer>());
 
     public MemoryClass() {
-        memArray = new int [MEM_SIZE][4];
+        memArray = new int [MEM_SIZE][MemorySystem.PAGE_SIZE];
         freeFrameList = new LinkedBlockingQueue<>();
         try {
             for (int i = 0; i < MEM_SIZE; i++) {

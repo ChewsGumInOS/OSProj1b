@@ -18,7 +18,7 @@ public class Driver {
 
     static int policy = FIFO;                       //current scheduling algorithm; FIFO is default.
 
-    public static final boolean CHECK_OUTPUT_MODE = true;      //to check output when complete.
+    public static final boolean CHECK_OUTPUT_MODE = false;      //to check output when complete.
     public static boolean logging;       //set to true if we want to output the results(buffers) to a file.
 
     //static ExecutorService executor;
@@ -39,7 +39,7 @@ public class Driver {
         /////////////////////////////////////////////////////////////////////////////////
 
         System.out.println("Welcome to the SimpleOS Simulator.\t");
-        System.out.print("Enter Scheduling Policy (1 for FIFO, 2 for Priority, 3 for SJF:\t");
+        System.out.print("Enter Scheduling Policy (1 for FIFO, 2 for Priority, 3 for SJF:)\t");
         policy = userInput.nextInt();
 
         System.out.print("Log output for 1 iteration?(y/n)\t");
@@ -77,6 +77,10 @@ public class Driver {
                 Thread frameFreerThread = new Thread(frameFreer);
                 frameFreerThread.start();
 
+                DMA dma = new DMA();
+                Thread dmaThread = new Thread(dma);
+                dmaThread.start();
+
                 cpu = new CPU[CPU.CPU_COUNT];
                 //executor = Executors.newFixedThreadPool(CPU.CPU_COUNT);
                 cpuThread = new Thread[CPU.CPU_COUNT];
@@ -104,13 +108,19 @@ public class Driver {
 
                 if (i == 0) {
                     queueWatch.clear();
+                    queueWatch.add("ready:, waiting:, done:, free frames:");
                 }
                 while (ScheduleAndDispatch.scheduleAndDispatch()) {
                     //after page fault or job completion:
                     if (i==0) {//output the queue progress for first iteration.
-                        queueWatch.add("ready:  " + Queues.readyQueue.size() +
-                                    "\twaiting:" + Queues.waitingQueue.size() +
-                                    "\tdone:   " + Queues.doneQueue.size());
+                        //System.out.println("Ready: " + Queues.readyQueue.size() + ", " +
+                        //        "Waiting: " + Queues.waitingQueue.size() + ", " +
+                        //        "Done: " + Queues.doneQueue.size() + ", " +
+                        //        "Free Frames: " + MemorySystem.memory.freeFrameList.size());
+                        queueWatch.add(Queues.readyQueue.size() + ", " +
+                                Queues.waitingQueue.size() + ", " +
+                                Queues.doneQueue.size() + ", " +
+                                MemorySystem.memory.freeFrameList.size());
                     }
                 }
 
@@ -130,6 +140,9 @@ public class Driver {
 
                     //shut down freeFrameManager.
                     Queues.freeFrameRequestQueue.put(shutDownRequest);
+
+                    //shut down DMA  thread.
+                    Queues.ioWaitQueue.put(shutDownRequest);
 
                     if (frameFreerThread.isAlive()) {
                         //System.out.println ("Warning: Frame Freer is still active.");
@@ -158,7 +171,19 @@ public class Driver {
                     //compare output to gold standard
                     checkOutputIsCorrect();
                 }
-                outputQueueWatchToFile("queueWatch.txt", queueWatch);
+
+                if (i==0) {//output the final state of the queues, for first iteration.
+                    //System.out.println("Ready: " + Queues.readyQueue.size() + ", " +
+                    //        "Waiting: " + Queues.waitingQueue.size() + ", " +
+                    //        "Done: " + Queues.doneQueue.size() + ", " +
+                    //        "Free Frames: " + MemorySystem.memory.freeFrameList.size());
+                    queueWatch.add(Queues.readyQueue.size() + ", " +
+                            Queues.waitingQueue.size() + ", " +
+                            Queues.doneQueue.size() + ", " +
+                            MemorySystem.memory.freeFrameList.size());
+                }
+
+                outputQueueWatchToFile("queueWatch.csv", queueWatch);
 
                 //outputMemToFile("coredump.txt");
                 outputDiskToFile();  //debugging method; outputs the contents of the disk to a file.
@@ -220,7 +245,7 @@ public class Driver {
             java.io.PrintWriter output = new java.io.PrintWriter(outputFile);
             for (PCB thisPCB : Queues.doneQueue) {
                 output.println("Job:" + thisPCB.jobId + "\tNumber of io operations: " + thisPCB.trackingInfo.ioCounter
-                    + "\tJobSize: " + thisPCB.getJobSizeInMemory()); // + "\tCPUid: " + thisPCB.cpuId);
+                    + "\tJobSize: " + thisPCB.jobSizeInMemory); // + "\tCPUid: " + thisPCB.cpuId);
             }
 
             for (PCB thisPCB : Queues.doneQueue) {
@@ -252,7 +277,7 @@ public class Driver {
             java.io.PrintWriter diskDump = new java.io.PrintWriter(diskDumpFile);
 
             for (int i = 0; i < MemorySystem.disk.DISK_SIZE; i++) {
-                for (int j = 0; j < 4; j++) {
+                for (int j = 0; j < MemorySystem.PAGE_SIZE; j++) {
                     diskDump.println(convertIntInstructionToHex(MemorySystem.disk.diskArray[i][j]));
                 }
             }
@@ -274,7 +299,7 @@ public class Driver {
             java.io.PrintWriter memDump = new java.io.PrintWriter(memDumpFile);
 
             for (int i = 0; i < MemorySystem.memory.MEM_SIZE; i++) {
-                for (int j = 0; j < 4; j++) {
+                for (int j = 0; j < MemorySystem.PAGE_SIZE; j++) {
                     memDump.println(convertIntInstructionToHex(MemorySystem.memory.memArray[i][j]));
                 }
             }

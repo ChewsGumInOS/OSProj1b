@@ -3,6 +3,8 @@
 
 public class LongScheduler {
 
+    final static int NUM_FRAMES_TO_LOAD = 4;
+
     //load processes into memory from disk.
     //these processes are "Ready" to be run.
     public static void schedule () {
@@ -18,7 +20,7 @@ public class LongScheduler {
         int memCounter = 0;  //current mem location being written to
         int diskCounter; //current disk location being read
         PCB currPCB;
-
+        long currTime;
         try {
             //keep reading jobs into memory until no more jobs to load.
             while (!Queues.diskQueue.isEmpty()) {
@@ -28,8 +30,8 @@ public class LongScheduler {
                 currPCB.status = PCB.state.READY;
                 diskCounter = currPCB.memories.disk_base_register;
 
-                for (int i = 0; i < 4; i++) {  //copy first 4 frames of job into memory, from disk.
-                    System.arraycopy(MemorySystem.disk.diskArray[diskCounter], 0, MemorySystem.memory.memArray[memCounter], 0, 4);
+                for (int i = 0; i < NUM_FRAMES_TO_LOAD; i++) {  //copy first 4 frames of job into memory, from disk.
+                    System.arraycopy(MemorySystem.disk.diskArray[diskCounter], 0, MemorySystem.memory.memArray[memCounter], 0, MemorySystem.PAGE_SIZE);
                     //MemorySystem.memory.freeFramesList.pop();           //update freeFramesList (frame of memory has been filled)
                     MemorySystem.memory.freeFrameList.take();           //update freeFramesList (frame of memory has been filled)
                     currPCB.memories.pageTable[i][PCB.PAGE_NUM] = memCounter;      //update page table
@@ -37,7 +39,9 @@ public class LongScheduler {
                     diskCounter++;
                     memCounter++;
                 }
-                currPCB.trackingInfo.waitStartTime = System.currentTimeMillis();
+                currTime = System.currentTimeMillis();
+                currPCB.trackingInfo.waitStart = currTime;
+                currPCB.trackingInfo. firstEnteredReadyQueue = currTime;
             }
         }
         catch (InterruptedException ie) {

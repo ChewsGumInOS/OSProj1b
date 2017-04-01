@@ -22,8 +22,8 @@ Job:20	Number of io operations: 11	JobSize: 68
 Job:22	Number of io operations: 11	JobSize: 72
 Job:23	Number of io operations: 10	JobSize: 67
 Job:24	Number of io operations: 11	JobSize: 68
-Job:25	Number of io operations: 6	JobSize: 67
 Job:26	Number of io operations: 7	JobSize: 63
+Job:25	Number of io operations: 6	JobSize: 67
 Job:27	Number of io operations: 11	JobSize: 67
 Job:28	Number of io operations: 11	JobSize: 72
 Job:29	Number of io operations: 11	JobSize: 68
@@ -124,14 +124,14 @@ Job ID:	24
 Input:	10 6 44 69 1 9 176 1 7 170 85 0 0 0 0 0 0 0 0 0 
 Output:	56 0 0 0 0 0 0 0 0 0 0 0 
 Temp:	6 44 69 1 9 176 1 7 170 85 0 0 
-Job ID:	25
-Input:	5 6 44 69 1 7 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-Output:	127 0 0 0 0 0 0 0 0 0 0 0 
-Temp:	6 44 69 1 7 0 0 0 0 0 0 0 
 Job ID:	26
 Input:	7 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
 Output:	0 1 2 3 5 8 13 0 0 0 0 0 
 Temp:	0 0 0 0 0 0 0 0 0 0 0 0 
+Job ID:	25
+Input:	5 6 44 69 1 7 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
+Output:	127 0 0 0 0 0 0 0 0 0 0 0 
+Temp:	6 44 69 1 7 0 0 0 0 0 0 0 
 Job ID:	27
 Input:	10 6 44 69 1 7 0 1 5 10 85 0 0 0 0 0 0 0 0 0 
 Output:	228 0 0 0 0 0 0 0 0 0 0 0 

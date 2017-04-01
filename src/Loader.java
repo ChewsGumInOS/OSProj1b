@@ -63,7 +63,7 @@ public class Loader {
                     orderIn++;
 
                     //make a note of where the job starts on the disk - the first frame.
-                    currJob.memories.disk_base_register = diskCounter/4;
+                    currJob.memories.disk_base_register = diskCounter/MemorySystem.PAGE_SIZE;
                     currJob.pc = 0;
                     currJob.goodFinish = false;
                     currJob.status = PCB.state.NEW;
@@ -84,9 +84,6 @@ public class Loader {
                             diskCounter++;
                         }
                     }
-                    ////move to a fresh frame; update diskCounter.
-                    //if (diskCounter%4 != 0)
-                    //    diskCounter += 4 - diskCounter%4;
 
                     /////////////////////////////////////////////////////////////////////////////////
                     //                           END READING INSTRUCTIONS
@@ -121,12 +118,14 @@ public class Loader {
                             int tempBufferSize = Integer.parseInt(tempBufferSizeHex, 16);
                             currJob.tempBufferSize = tempBufferSize;
 
+
+                            currJob.jobSizeInMemory = codeSize + inputBufferSize + outputBufferSize + tempBufferSize;
                             /////////////////////////////////////////////////////////////////////////////////
                             //                           END READING DATA CARD
                             /////////////////////////////////////////////////////////////////////////////////
 
                             //make a note of where the job data starts on the disk.
-                            currJob.memories.disk_data_base_reg = diskCounter/4;
+                            currJob.memories.disk_data_base_reg = diskCounter/MemorySystem.PAGE_SIZE;
 
                             /////////////////////////////////////////////////////////////////////////////////
                             //                           BEGIN READING DATA SECTION
@@ -144,8 +143,8 @@ public class Loader {
                                 }
                             }
                             //move to a fresh frame; update diskCounter.
-                            if (diskCounter%4 != 0)
-                                diskCounter += 4 - diskCounter%4;
+                            if (diskCounter%MemorySystem.PAGE_SIZE != 0)
+                                diskCounter += MemorySystem.PAGE_SIZE - diskCounter%MemorySystem.PAGE_SIZE;
 
                             /////////////////////////////////////////////////////////////////////////////////
                             //                           END READING DATA SECTION

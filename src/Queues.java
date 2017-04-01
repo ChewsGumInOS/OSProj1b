@@ -21,6 +21,11 @@ public class Queues {
 
     static LinkedBlockingQueue<PCB> freeFrameRequestQueue;
 
+    static SynchronousQueue<PCB> ioWaitQueue;
+    static SynchronousQueue<Integer> [] ioDoneQueue;  //signals CPU that IO is done, and can continue.
+
+
+
     static public void initQueues () {
 
         diskQueue = new LinkedList<>();
@@ -31,6 +36,9 @@ public class Queues {
         //Driver loads with -1 to shutdown the CPU's.
         runningQueues = new SynchronousQueue[CPU.CPU_COUNT];
 
+        ioWaitQueue = new SynchronousQueue();
+        ioDoneQueue = new SynchronousQueue[CPU.CPU_COUNT];
+
         //freeCpuQueue: 4 free CPU's initially.
         //scheduler keeps removing free cpu's as they are assigned - scheduler blocks at 0.
         freeCpuQueue = new LinkedBlockingQueue<>();
@@ -40,6 +48,7 @@ public class Queues {
         for (int i = 0 ; i < CPU.CPU_COUNT; i++) {
             freeCpuQueue.add(i);
             runningQueues[i] = new SynchronousQueue();
+            ioDoneQueue[i] = new SynchronousQueue<>();
         }
 
         Comparator<PCB> comparatorPCB;
@@ -48,14 +57,14 @@ public class Queues {
                 comparatorPCB = (PCB o1, PCB o2)-> o2.priority - o1.priority;
             break;
             case (Driver.SJF):
-                comparatorPCB = (PCB o1, PCB o2) -> o1.getJobSizeInMemory() - o2.getJobSizeInMemory();
+                comparatorPCB = (PCB o1, PCB o2) -> o1.jobSizeInMemory - o2.jobSizeInMemory;
             break;
             default:     //FIFO
                 comparatorPCB = (PCB o1, PCB o2) -> o1.order - o2.order;
             break;
         }
-        readyQueue = new PriorityBlockingQueue<PCB>(NUM_JOBS, comparatorPCB);
-        waitingQueue = new PriorityBlockingQueue<PCB>(NUM_JOBS, comparatorPCB);
+        readyQueue = new PriorityBlockingQueue(NUM_JOBS, comparatorPCB);
+        waitingQueue = new PriorityBlockingQueue(NUM_JOBS, comparatorPCB);
 
     }
 }

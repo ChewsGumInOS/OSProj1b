@@ -3,6 +3,10 @@ import java.util.concurrent.TimeUnit;
 
 public class FrameFreer implements Runnable {
 
+    //public void run () {
+    //}
+
+
     public void run () {
 
         PCB currJob;
@@ -11,7 +15,7 @@ public class FrameFreer implements Runnable {
             while (!Thread.currentThread().isInterrupted()) {
                 currJob = Queues.freeFrameRequestQueue.take();
 
-                //this is how the Driver shuts down the PageManager after all jobs are processed.
+                //this is how the Driver shuts down the FrameFreer after all jobs are processed.
                 if (currJob.jobId == -1) {
                     synchronized (Queues.FrameFreerShutDownLock) {
                         Queues.FrameFreerShutDownLock.notify();  //let the driver know FrameFreer is done.
@@ -28,7 +32,7 @@ public class FrameFreer implements Runnable {
                         if (currJob.memories.pageTable[i][PCB.MODIFIED] == 1) { //check frame was modified
                             diskCounter = currJob.memories.disk_base_register + i;
                             //copy the page from memory, back to disk.
-                            System.arraycopy(MemorySystem.memory.memArray[frameToFree], 0, MemorySystem.disk.diskArray[diskCounter], 0, 4);
+                            System.arraycopy(MemorySystem.memory.memArray[frameToFree], 0, MemorySystem.disk.diskArray[diskCounter], 0, MemorySystem.PAGE_SIZE);
                             TimeUnit.NANOSECONDS.sleep(CPU.DISK_ACCESS_DELAY);  //delay to simulate disk access.
                         }
                         currJob.memories.pageTable[i][PCB.VALID] = 0;
